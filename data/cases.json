@@ -1,0 +1,86 @@
+[
+  {
+    "id": "c_5c8408fb",
+    "name": "Carlos Reyes",
+    "property_address": "",
+    "email": "cr@example.com",
+    "phone": "555-9999",
+    "comments": "Hospitalized after MVA on I-10. Surgery on Tuesday. Other driver was on duty for FedEx.",
+    "case_type": "auto_accident",
+    "value_tier": "major",
+    "city": "Houston",
+    "state": "TX",
+    "intake_strength": "strong",
+    "intake_signals": [
+      "hospitalized",
+      "surgery_likely",
+      "corporate_defendant"
+    ],
+    "status": "closed",
+    "assigned_lawyer_id": "l_demo0001",
+    "referral_reasons": [
+      "specialty_match",
+      "jurisdiction_match",
+      "value_tier_match"
+    ],
+    "referral_notes": "Maria's exact wheelhouse",
+    "referral_was_override": false,
+    "referral_suggested_lawyer_id": "l_demo0001",
+    "created_at": "2026-04-28T04:21:29Z",
+    "updated_at": "2026-04-28T04:21:29Z",
+    "referral_fee_at_referral": "33%",
+    "referred_at": "2026-04-28T04:21:29Z",
+    "lawyer_response": "accepted",
+    "lawyer_responded_at": "2026-04-28T04:21:29Z",
+    "outcome": "settled",
+    "outcome_amount": 850000.0,
+    "outcome_notes": "Settled at mediation against FedEx, policy limits",
+    "outcome_at": "2026-04-28T04:21:29Z",
+    "referral_fee_collected": 280500.0
+  },
+  {
+    "id": "c_5cd3d57e",
+    "name": "Frank Soto",
+    "property_address": "",
+    "email": "fs@example.com",
+    "phone": "",
+    "comments": "Minor fender bender, soft tissue",
+    "case_type": "auto_accident",
+    "value_tier": "low",
+    "city": "Houston",
+    "state": "TX",
+    "intake_strength": "weak",
+    "intake_signals": [
+      "soft_tissue_only"
+    ],
+    "status": "needs_review",
+    "assigned_lawyer_id": null,
+    "referral_reasons": [],
+    "referral_notes": null,
+    "referral_was_override": null,
+    "referral_suggested_lawyer_id": null,
+    "created_at": "2026-04-28T04:21:29Z",
+    "updated_at": "2026-04-28T04:21:29Z",
+    "referral_fee_at_referral": "33%",
+    "referred_at": null,
+    "lawyer_response": "declined",
+    "previously_referred_to": [
+      {
+        "lawyer_id": "l_demo0001",
+        "lawyer_name": "Maria Alvarez",
+        "decline_reasons": [
+          "case_too_weak",
+          "below_value_threshold"
+        ],
+        "decline_notes": "Soft tissue only, not worth the workup",
+        "referral_reasons": [
+          "specialty_match"
+        ],
+        "referral_notes": "Worth a shot",
+        "referred_at": "2026-04-28T04:21:29Z",
+        "declined_at": "2026-04-28T04:21:29Z"
+      }
+    ],
+    "lawyer_responded_at": "2026-04-28T04:21:29Z"
+  }
+]

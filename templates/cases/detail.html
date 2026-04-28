@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, chip, static_chip, select_field %}
+{% block title %}{{ case.name }} · Legal Case Analyzer{% endblock %}
+
+{% set previously_declined_ids = (case.previously_referred_to or []) | map(attribute='lawyer_id') | list %}
+
+{% block content %}
+<div class="flex items-start justify-between gap-4 mb-8">
+  <div>
+    <div class="text-[11px] uppercase tracking-[0.2em] text-ink-700/60 mb-2">Case</div>
+    <h1 class="font-display text-5xl text-ink-900 leading-[1.05]">{{ case.name }}</h1>
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink-700/70">
+      <span>{{ CASE_TYPE_LABELS.get(case.case_type, case.case_type) }}</span>
+      <span class="text-ink-200">·</span>
+      <span>{{ VALUE_TIER_LABELS.get(case.value_tier, case.value_tier) }}</span>
+      {% set juris = jurisdiction_str(case) %}
+      {% if juris %}<span class="text-ink-200">·</span><span>{{ juris }}</span>{% endif %}
+      <span class="text-ink-200">·</span>
+      {{ status_badge(case.status, STATUS_LABELS, STATUS_STYLES) }}
+      {% if case.intake_strength %}
+        <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full {{ INTAKE_STRENGTH_STYLES.get(case.intake_strength, 'bg-slate-100 text-slate-700') }}">
+          {{ INTAKE_STRENGTH_LABELS.get(case.intake_strength, case.intake_strength) }}
+        </span>
+      {% endif %}
+      {% if case.outcome %}
+        <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full {{ OUTCOME_STYLES.get(case.outcome, 'bg-slate-100') }}">
+          {{ OUTCOME_LABELS.get(case.outcome, case.outcome) }}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('cases_delete', case_id=case.id) }}" onsubmit="return confirm('Delete this case?')">
+    <button class="text-sm text-rose-700 hover:underline">Delete</button>
+  </form>
+</div>
+
+{# Banner: re-referral case after a decline #}
+{% if case.previously_referred_to and case.status == 'needs_review' %}
+<div class="mb-6 rounded-2xl bg-amber-50 border border-amber-200 p-5">
+  <div class="flex items-start gap-3">
+    <svg class="shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div>
+      <div class="font-medium text-amber-900">Re-referral · this case has been declined before</div>
+      <ul class="mt-2 space-y-1.5 text-sm text-amber-900/80">
+        {% for prev in case.previously_referred_to %}
+          <li>
+            <span class="font-medium">{{ prev.lawyer_name }}</span> declined on
+            <span class="text-amber-900/60">{{ prev.declined_at[:10] }}</span>
+            — {% for r in prev.decline_reasons %}{{ DECLINE_REASON_LABELS.get(r, r) }}{% if not loop.last %}, {% endif %}{% endfor %}
+            {% if prev.decline_notes %}<span class="text-amber-900/70 italic"> · "{{ prev.decline_notes }}"</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  {# ===== Left column: case context ===== #}
+  <div class="lg:col-span-1 space-y-6">
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-3">Client info</h3>
+      <dl class="text-sm space-y-2">
+        <div><dt class="text-ink-700/60 text-xs uppercase tracking-wider">Email</dt><dd>{{ case.email or '—' }}</dd></div>
+        <div><dt class="text-ink-700/60 text-xs uppercase tracking-wider">Phone</dt><dd>{{ case.phone or '—' }}</dd></div>
+        <div><dt class="text-ink-700/60 text-xs uppercase tracking-wider">Property address</dt><dd>{{ case.property_address or '—' }}</dd></div>
+        <div><dt class="text-ink-700/60 text-xs uppercase tracking-wider">Created</dt><dd>{{ case.created_at[:10] }}</dd></div>
+      </dl>
+    </div>
+
+    {% if case.comments %}
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-3">Comments</h3>
+      <p class="text-sm text-ink-700 whitespace-pre-wrap">{{ case.comments }}</p>
+    </div>
+    {% endif %}
+
+    {% if case.intake_signals %}
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-3">Intake signals</h3>
+      <div class="flex flex-wrap gap-1.5">
+        {% for s in case.intake_signals %}
+          {{ static_chip(INTAKE_SIGNAL_LABELS.get(s, s)) }}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ===== Right column: status-driven workflow panels ===== #}
+  <div class="lg:col-span-2 space-y-6">
+
+    {# ----- PHASE: needs_review — pick a lawyer ----- #}
+    {% if case.status == 'needs_review' %}
+
+      {# AI Agent panel — loads async #}
+      <div id="agent-panel" class="bg-gradient-to-br from-ink-900 to-ink-800 text-white rounded-2xl shadow-card p-6 sm:p-8 relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-accent/15 blur-3xl"></div>
+        <div class="relative">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c8a45c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+              <h3 class="font-display text-2xl">AI Agent</h3>
+            </div>
+            <span id="agent-status" class="text-[10px] uppercase tracking-wider text-white/50">…</span>
+          </div>
+          <p class="text-sm text-white/60 mb-4">Trained on your past referrals, declines, and outcomes.</p>
+          <div id="agent-body" class="text-sm">
+            <div class="flex items-center gap-2 text-white/60">
+              <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.22-8.56" stroke-linecap="round"/></svg>
+              <span>Thinking…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Rule-based suggestions #}
+      <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6 sm:p-8">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="font-display text-2xl">Rules engine</h3>
+          <span class="text-xs text-ink-700/60">Score-based · transparent logic</span>
+        </div>
+        <p class="text-sm text-ink-700/60 mb-5">Practice area, jurisdiction, value tier, capacity.</p>
+        {% if ranked %}
+          <ul class="space-y-3">
+            {% for r in ranked %}
+              <li class="border border-ink-100 rounded-xl p-4 flex items-start justify-between gap-4 hover:border-ink-200 transition">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <a href="{{ url_for('lawyers_detail', lawyer_id=r.lawyer.id) }}" class="font-medium text-ink-900 hover:underline">{{ r.lawyer.name }}</a>
+                    <span class="text-xs text-ink-700/60">{{ r.lawyer.firm }}</span>
+                    <span class="ml-1 text-[10px] uppercase tracking-wider bg-ink-100 text-ink-900 px-2 py-0.5 rounded-full">score {{ r.score }}</span>
+                    {% if r.lawyer.id in previously_declined_ids %}
+                      <span class="text-[10px] uppercase tracking-wider bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">declined before</span>
+                    {% endif %}
+                  </div>
+                  <ul class="mt-2 text-xs text-ink-700/80 space-y-0.5">
+                    {% for reason in r.reasons %}<li class="flex items-start gap-1.5"><span class="text-ink-300 mt-0.5">·</span><span>{{ reason }}</span></li>{% endfor %}
+                  </ul>
+                </div>
+                <button type="button" data-pick-id="{{ r.lawyer.id }}" data-pick-label="{{ r.lawyer.name }} ({{ r.lawyer.firm }})" class="pick-btn shrink-0 text-xs font-medium bg-ink-900 text-white px-3 py-1.5 rounded-full hover:bg-ink-800">Pick →</button>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm text-ink-700/60">No lawyers in your network yet. <a href="{{ url_for('lawyers_new') }}" class="underline">Add one →</a></p>
+        {% endif %}
+      </div>
+
+      {# Decision capture form #}
+      {% if lawyers %}
+      <div id="assign-card" class="bg-white rounded-2xl shadow-card border border-ink-100 p-6 sm:p-8">
+        <div class="text-[11px] uppercase tracking-[0.2em] text-ink-700/60 mb-2">Step 2 · Decision capture</div>
+        <h3 class="font-display text-2xl mb-1">Refer & log your reasoning</h3>
+        <p class="text-sm text-ink-700/60 mb-6">Structured reasons feed the agent. Pick at least one — overriding the top suggestion is fine, that's the most valuable training signal.</p>
+
+        <form id="assign-form" method="post" action="{{ url_for('cases_assign', case_id=case.id) }}" class="space-y-6">
+          <input type="hidden" name="lawyer_id" id="lawyer_id_input" value=""/>
+
+          <div>
+            <div class="text-sm font-medium text-ink-900 mb-2">Lawyer</div>
+            <div class="flex items-center gap-3 mb-2">
+              <span id="lawyer-display" class="text-sm text-ink-700/60 italic">— click "Pick" above, or choose below —</span>
+            </div>
+            {{ select_field('_manual', [], placeholder='Choose a lawyer manually…') }}
+            <select id="manual-lawyer" class="hidden">
+              <option value="">Choose…</option>
+              {% for l in lawyers %}
+                <option value="{{ l.id }}">{{ l.name }} ({{ l.firm }}){% if l.id in previously_declined_ids %} · already declined{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-sm font-medium text-ink-900">Reasons for choice <span class="text-rose-600">*</span></div>
+              <span class="text-xs text-ink-700/60">Multi-select</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              {% for code, label in REFERRAL_REASONS %}
+                {{ chip('referral_reasons', code, label) }}
+              {% endfor %}
+            </div>
+          </div>
+
+          <label class="block">
+            <span class="text-sm font-medium text-ink-900">Notes <span class="text-ink-700/50 font-normal">· optional</span></span>
+            <textarea name="notes" rows="3" placeholder="Anything specific the canned reasons don't capture." class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"></textarea>
+          </label>
+
+          <div class="flex justify-end pt-2 border-t border-ink-100">
+            <button class="bg-ink-900 text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-ink-800 shadow-card">Refer case</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+    {% endif %}
+
+    {# ----- PHASE: referred — awaiting lawyer's response ----- #}
+    {% if case.status == 'referred' and assigned %}
+      {% set email_subject = 'Referral: ' + case.name %}
+      {% set lines = [] %}
+      {% set lawyer_first = assigned.name.split()[0] %}
+      {% set _ = lines.append('Hi ' + lawyer_first + ',') %}
+      {% set _ = lines.append('') %}
+      {% set _ = lines.append('I have a referral that looks like a fit:') %}
+      {% set _ = lines.append('') %}
+      {% set _ = lines.append('Client: ' + case.name) %}
+      {% set _ = lines.append('Type: ' + CASE_TYPE_LABELS.get(case.case_type, case.case_type)) %}
+      {% set _ = lines.append('Value tier: ' + VALUE_TIER_LABELS.get(case.value_tier, case.value_tier)) %}
+      {% if jurisdiction_str(case) %}{% set _ = lines.append('Location: ' + jurisdiction_str(case)) %}{% endif %}
+      {% if case.intake_strength %}{% set _ = lines.append('My read: ' + INTAKE_STRENGTH_LABELS.get(case.intake_strength, case.intake_strength)) %}{% endif %}
+      {% if case.intake_signals %}
+        {% set _ = lines.append('') %}
+        {% set _ = lines.append('Key signals:') %}
+        {% for s in case.intake_signals %}{% set _ = lines.append('- ' + INTAKE_SIGNAL_LABELS.get(s, s)) %}{% endfor %}
+      {% endif %}
+      {% if case.comments %}
+        {% set _ = lines.append('') %}
+        {% set _ = lines.append('Client comments:') %}
+        {% set _ = lines.append(case.comments) %}
+      {% endif %}
+      {% set _ = lines.append('') %}
+      {% set _ = lines.append('Client contact: ' + (case.email or '—') + ' / ' + (case.phone or '—')) %}
+      {% if assigned.referral_fee %}{% set _ = lines.append('') %}{% set _ = lines.append(assigned.referral_fee + ' referral fee. Let me know if you want it.') %}{% endif %}
+      {% set _ = lines.append('') %}
+      {% set _ = lines.append('— ' + (current_user.name if current_user else 'Referrer')) %}
+      {% set email_body = lines | join('\n') %}
+
+      <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6 sm:p-8">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.2em] text-ink-700/60 mb-2">Awaiting response</div>
+            <h3 class="font-display text-2xl">{{ assigned.name }}</h3>
+            <div class="text-sm text-ink-700/70">{{ assigned.firm }}</div>
+            <div class="text-xs text-ink-700/60 mt-1">Referred {{ case.referred_at[:10] if case.referred_at else case.updated_at[:10] }}</div>
+          </div>
+          <a href="mailto:{{ assigned.email or '' }}?subject={{ email_subject | urlencode }}&body={{ email_body | urlencode }}" class="inline-flex items-center gap-2 bg-ink-900 text-white text-sm font-medium px-4 py-2.5 rounded-full hover:bg-ink-800 shadow-card">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Send referral email
+          </a>
+        </div>
+
+        {% if case.referral_reasons %}
+        <div class="mt-5 pt-5 border-t border-ink-100">
+          <div class="text-[11px] uppercase tracking-[0.18em] text-ink-700/60 mb-2">Why this lawyer</div>
+          <div class="flex flex-wrap gap-1.5">
+            {% for r in case.referral_reasons %}{{ static_chip(REFERRAL_REASON_LABELS.get(r, r), tone='emerald') }}{% endfor %}
+          </div>
+          {% if case.referral_notes %}<p class="mt-2 text-sm text-ink-700 italic">"{{ case.referral_notes }}"</p>{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="mt-6 pt-5 border-t border-ink-100">
+          <div class="text-sm font-medium text-ink-900 mb-3">When the lawyer responds</div>
+          <div class="flex flex-wrap gap-2">
+            <form method="post" action="{{ url_for('cases_respond', case_id=case.id) }}">
+              <input type="hidden" name="response" value="accepted"/>
+              <button class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-full shadow-card">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Mark accepted
+              </button>
+            </form>
+            <button type="button" onclick="document.getElementById('decline-form').classList.toggle('hidden')" class="inline-flex items-center gap-2 bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 text-sm font-medium px-4 py-2 rounded-full">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Mark declined
+            </button>
+          </div>
+        </div>
+
+        <form id="decline-form" method="post" action="{{ url_for('cases_respond', case_id=case.id) }}" class="hidden mt-5 p-5 bg-rose-50 border border-rose-200 rounded-xl space-y-4">
+          <input type="hidden" name="response" value="declined"/>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-sm font-medium text-rose-900">Decline reasons <span class="text-rose-600">*</span></div>
+              <span class="text-xs text-rose-900/70">The most valuable training signal</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              {% for code, label in DECLINE_REASONS %}
+                {{ chip('decline_reason_codes', code, label) }}
+              {% endfor %}
+            </div>
+          </div>
+          <label class="block">
+            <span class="text-sm font-medium text-rose-900">Decline notes <span class="text-rose-900/60 font-normal">· what they said, in their words</span></span>
+            <textarea name="decline_notes" rows="2" placeholder='e.g. "Soft tissue only, not worth the workup."' class="mt-1.5 w-full rounded-lg border-rose-200 border px-3 py-2 text-sm"></textarea>
+          </label>
+          <div class="flex justify-end gap-2">
+            <button type="button" onclick="document.getElementById('decline-form').classList.add('hidden')" class="text-sm text-rose-700 px-3 py-2">Cancel</button>
+            <button class="bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium px-4 py-2 rounded-full">Save decline & re-open</button>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+
+    {# ----- PHASE: accepted — active case, capture outcome ----- #}
+    {% if case.status == 'accepted' and assigned %}
+      <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.2em] text-emerald-900/60 mb-2">Active</div>
+            <h3 class="font-display text-2xl text-emerald-900">{{ assigned.name }} took the case</h3>
+            <div class="text-sm text-emerald-900/70">{{ assigned.firm }}</div>
+            <div class="text-xs text-emerald-900/60 mt-1">Accepted {{ case.lawyer_responded_at[:10] if case.lawyer_responded_at else '—' }}</div>
+          </div>
+        </div>
+
+        {% if case.referral_reasons %}
+        <div class="mt-4 pt-4 border-t border-emerald-200/60">
+          <div class="text-[11px] uppercase tracking-[0.18em] text-emerald-900/60 mb-2">Why this lawyer</div>
+          <div class="flex flex-wrap gap-1.5">
+            {% for r in case.referral_reasons %}{{ static_chip(REFERRAL_REASON_LABELS.get(r, r), tone='emerald') }}{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6 sm:p-8">
+        <h3 class="font-display text-2xl mb-1">Record outcome</h3>
+        <p class="text-sm text-ink-700/60 mb-5">When the case resolves, log it here. Outcome data closes the loop on which referrals actually paid.</p>
+        <form method="post" action="{{ url_for('cases_outcome', case_id=case.id) }}" class="space-y-4">
+          <div>
+            <div class="text-sm font-medium text-ink-900 mb-2">Outcome <span class="text-rose-600">*</span></div>
+            <div class="flex flex-wrap gap-2">
+              {% for code, label in OUTCOMES %}
+                <label class="cursor-pointer inline-block">
+                  <input type="radio" name="outcome" value="{{ code }}" required class="peer sr-only"/>
+                  <span class="inline-block px-4 py-2 rounded-full text-sm font-medium border border-ink-200 text-ink-700 hover:border-ink-700 peer-checked:bg-ink-900 peer-checked:text-white peer-checked:border-ink-900 transition select-none">{{ label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <label class="block sm:col-span-1">
+              <span class="text-sm font-medium text-ink-900">Recovery amount</span>
+              <div class="mt-1.5 relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink-700/60 text-sm">$</span>
+                <input name="outcome_amount" inputmode="decimal" placeholder="0" class="w-full rounded-lg border-ink-200 border pl-7 pr-3 py-2.5 text-sm"/>
+              </div>
+              <span class="text-xs text-ink-700/60 mt-1 block">Gross recovery, before fees. Leave blank if no recovery.</span>
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="text-sm font-medium text-ink-900">Notes</span>
+              <input name="outcome_notes" placeholder="e.g. Settled at mediation, defendant paid policy limits." class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+            </label>
+          </div>
+          {% if case.referral_fee_at_referral %}
+          <div class="text-xs text-ink-700/70 italic">
+            Referral fee snapshot at referral: <strong>{{ case.referral_fee_at_referral }}</strong>. Auto-calculated against any recovery amount.
+          </div>
+          {% endif %}
+          <div class="flex justify-end pt-2 border-t border-ink-100">
+            <button class="bg-ink-900 text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-ink-800 shadow-card">Save outcome & close case</button>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+
+    {# ----- PHASE: closed — outcome locked in ----- #}
+    {% if case.status == 'closed' %}
+      <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6 sm:p-8">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.2em] text-ink-700/60 mb-2">Closed</div>
+            <h3 class="font-display text-3xl">{{ OUTCOME_LABELS.get(case.outcome, case.outcome) }}</h3>
+            {% if assigned %}<div class="text-sm text-ink-700/70 mt-1">with {{ assigned.name }} — {{ assigned.firm }}</div>{% endif %}
+            {% if case.outcome_at %}<div class="text-xs text-ink-700/60 mt-1">{{ case.outcome_at[:10] }}</div>{% endif %}
+          </div>
+          <span class="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full {{ OUTCOME_STYLES.get(case.outcome, 'bg-slate-100') }}">
+            {{ OUTCOME_LABELS.get(case.outcome, case.outcome) }}
+          </span>
+        </div>
+
+        {% if case.outcome in OUTCOMES_WITH_RECOVERY %}
+        <div class="mt-6 grid grid-cols-2 gap-4">
+          <div class="rounded-xl border border-ink-100 p-4">
+            <div class="text-[10px] uppercase tracking-wider text-ink-700/60">Recovery</div>
+            <div class="font-display text-3xl text-ink-900 mt-1">${{ '{:,.0f}'.format(case.outcome_amount or 0) }}</div>
+          </div>
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+            <div class="text-[10px] uppercase tracking-wider text-emerald-900/60">Referral fee</div>
+            <div class="font-display text-3xl text-emerald-800 mt-1">${{ '{:,.0f}'.format(case.referral_fee_collected or 0) }}</div>
+            {% if case.referral_fee_at_referral %}<div class="text-xs text-emerald-900/60 mt-1">at {{ case.referral_fee_at_referral }}</div>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if case.outcome_notes %}
+          <div class="mt-5 pt-5 border-t border-ink-100">
+            <div class="text-[11px] uppercase tracking-[0.18em] text-ink-700/60 mb-2">Notes</div>
+            <p class="text-sm text-ink-700">{{ case.outcome_notes }}</p>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{# ===== Scripts ===== #}
+<script>
+(function() {
+  // Pick / manual select wiring (reused from prior assign UX)
+  const hidden = document.getElementById('lawyer_id_input');
+  const display = document.getElementById('lawyer-display');
+  const manual = document.querySelector('#assign-form select[name="_manual"]');
+  const realSrc = document.getElementById('manual-lawyer');
+  if (manual && realSrc) manual.innerHTML = realSrc.innerHTML;
+  if (manual && hidden) manual.addEventListener('change', function() {
+    hidden.value = this.value;
+    if (display) {
+      display.textContent = this.value ? this.options[this.selectedIndex].text : '— none —';
+      display.classList.toggle('italic', !this.value);
+    }
+  });
+  document.querySelectorAll('.pick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!hidden) return;
+      hidden.value = btn.dataset.pickId;
+      if (display) { display.textContent = btn.dataset.pickLabel; display.classList.remove('italic'); }
+      if (manual) manual.value = btn.dataset.pickId;
+      const card = document.getElementById('assign-card');
+      if (card) card.scrollIntoView({behavior: 'smooth', block: 'start'});
+    });
+  });
+
+  // AI Agent: async fetch + render
+  const panel = document.getElementById('agent-panel');
+  if (!panel) return;
+  const status = document.getElementById('agent-status');
+  const body = document.getElementById('agent-body');
+  fetch("{{ url_for('cases_agent_suggestion', case_id=case.id) }}")
+    .then(r => r.json())
+    .then(data => {
+      if (!data.configured) {
+        status.textContent = 'not configured';
+        body.innerHTML = '<div class="text-white/70">Set <code class="bg-white/10 px-1.5 py-0.5 rounded">ANTHROPIC_API_KEY</code> to enable agent suggestions trained on your referral history.</div>';
+        return;
+      }
+      if (data.error) {
+        status.textContent = 'error';
+        body.innerHTML = `<div class="text-rose-200">Agent error: ${escapeHtml(data.error)}</div>`;
+        return;
+      }
+      const conf = (data.confidence || 'medium').toLowerCase();
+      const confColor = conf === 'high' ? 'bg-emerald-400/20 text-emerald-200' : (conf === 'low' ? 'bg-amber-400/20 text-amber-200' : 'bg-sky-400/20 text-sky-200');
+      status.textContent = '';
+      const rec = data.recommended_lawyer || {};
+      const factorsHtml = (data.key_factors || []).map(f => `<span class="text-[11px] bg-white/10 text-white/80 px-2 py-0.5 rounded-full">${escapeHtml(f)}</span>`).join(' ');
+      const altsHtml = (data.alternatives || []).map(a =>
+        `<li class="text-xs text-white/60"><span class="text-white/80">${escapeHtml(a.lawyer_name || a.lawyer_id)}</span> — ${escapeHtml(a.reason || '')}</li>`
+      ).join('');
+      body.innerHTML = `
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <a href="/lawyers/${rec.id}" class="font-display text-2xl text-white hover:underline">${escapeHtml(rec.name || rec.id || '?')}</a>
+              <span class="text-xs ${confColor} px-2 py-0.5 rounded-full">${conf} confidence</span>
+            </div>
+            <div class="text-sm text-white/60">${escapeHtml(rec.firm || '')}</div>
+            <p class="mt-3 text-sm text-white/85">${escapeHtml(data.rationale || '')}</p>
+            <div class="mt-3 flex flex-wrap gap-1.5">${factorsHtml}</div>
+            ${altsHtml ? `<div class="mt-4 pt-4 border-t border-white/10"><div class="text-[10px] uppercase tracking-wider text-white/50 mb-1.5">Also considered</div><ul class="space-y-1">${altsHtml}</ul></div>` : ''}
+          </div>
+          <button class="pick-btn shrink-0 bg-accent hover:bg-accent/90 text-ink-900 text-xs font-semibold px-3 py-1.5 rounded-full" data-pick-id="${rec.id || ''}" data-pick-label="${escapeHtml((rec.name || '') + ' (' + (rec.firm || '') + ')')}">Pick →</button>
+        </div>
+      `;
+      // Re-bind newly inserted pick button
+      body.querySelectorAll('.pick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!hidden) return;
+          hidden.value = btn.dataset.pickId;
+          if (display) { display.textContent = btn.dataset.pickLabel; display.classList.remove('italic'); }
+          if (manual) manual.value = btn.dataset.pickId;
+          const card = document.getElementById('assign-card');
+          if (card) card.scrollIntoView({behavior: 'smooth', block: 'start'});
+        });
+      });
+    })
+    .catch(err => {
+      status.textContent = 'error';
+      body.innerHTML = `<div class="text-rose-200">${escapeHtml(String(err))}</div>`;
+    });
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  }
+})();
+</script>
+{% endblock %}

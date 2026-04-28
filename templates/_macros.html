@@ -1,0 +1,77 @@
+{% macro page_header(title, subtitle, action_label=None, action_url=None, eyebrow=None) %}
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+  <div>
+    {% if eyebrow %}<div class="text-[11px] uppercase tracking-[0.2em] text-ink-700/60 mb-2">{{ eyebrow }}</div>{% endif %}
+    <h1 class="font-display text-5xl sm:text-6xl text-ink-900 leading-[1.05]">{{ title }}</h1>
+    {% if subtitle %}<p class="text-ink-700/70 mt-3 max-w-xl">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if action_label and action_url %}
+    <a href="{{ action_url }}" class="self-start sm:self-auto inline-flex items-center gap-2 bg-ink-900 text-white text-sm font-medium px-5 py-3 rounded-full hover:bg-ink-800 transition shadow-card">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      {{ action_label }}
+    </a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro status_badge(status, status_labels, status_styles) %}
+  <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full {{ status_styles.get(status, 'bg-slate-100 text-slate-700') }}">{{ status_labels.get(status, status) }}</span>
+{% endmacro %}
+
+{% macro sparkline(values, color='bg-ink-900') %}
+  {% set mx = values|max if values|max > 0 else 1 %}
+  <div class="flex items-end gap-0.5 h-7">
+    {% for v in values %}
+      <div class="w-1.5 rounded-t {{ color }} {% if v == 0 %}opacity-15{% endif %}" style="height: {{ ((v / mx) * 100) | round(1) if mx else 0 }}%; min-height: 2px;"></div>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro stat_card(label, value, sublabel=None, sparkline_values=None, spark_color='bg-ink-900', accent='ink') %}
+<div class="relative bg-white rounded-2xl shadow-card hover:shadow-cardHover transition border border-ink-100 px-6 py-6 overflow-hidden group">
+  <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full {% if accent == 'amber' %}bg-amber-50{% elif accent == 'emerald' %}bg-emerald-50{% elif accent == 'sky' %}bg-sky-50{% else %}bg-ink-50{% endif %} opacity-70"></div>
+  <div class="relative">
+    <div class="flex items-center justify-between">
+      <div class="text-xs uppercase tracking-wider text-ink-700/60 font-medium">{{ label }}</div>
+      <div class="w-1.5 h-1.5 rounded-full {% if accent == 'amber' %}bg-amber-500{% elif accent == 'emerald' %}bg-emerald-500{% elif accent == 'sky' %}bg-sky-500{% else %}bg-ink-900{% endif %}"></div>
+    </div>
+    <div class="font-display text-6xl mt-3 text-ink-900 leading-none">{{ value }}</div>
+    <div class="mt-4 flex items-end justify-between gap-3">
+      <div class="text-xs text-ink-700/60 leading-tight">{{ sublabel or '&nbsp;'|safe }}</div>
+      {% if sparkline_values %}{{ sparkline(sparkline_values, spark_color) }}{% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# Styled <select> with a chevron icon. options: list of (value, label) #}
+{% macro select_field(name, options, selected=None, placeholder=None, required=False) %}
+<div class="relative">
+  <select name="{{ name }}" {% if required %}required{% endif %} class="appearance-none w-full rounded-lg border-ink-200 border bg-white px-3 py-2.5 pr-9 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-900/20 focus:border-ink-700">
+    {% if placeholder %}<option value="" {% if not selected %}selected{% endif %}>{{ placeholder }}</option>{% endif %}
+    {% for value, label in options %}
+      <option value="{{ value }}" {% if selected == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-700/50 pointer-events-none"><polyline points="6 9 12 15 18 9"/></svg>
+</div>
+{% endmacro %}
+
+{# Toggleable chip backed by a hidden checkbox. #}
+{% macro chip(name, value, label, kind='checkbox', checked=False) %}
+<label class="cursor-pointer inline-block">
+  <input type="{{ kind }}" name="{{ name }}" value="{{ value }}" {% if checked %}checked{% endif %} class="peer sr-only" />
+  <span class="inline-block px-3 py-1.5 rounded-full text-xs font-medium border border-ink-200 text-ink-700 hover:border-ink-700 peer-checked:bg-ink-900 peer-checked:text-white peer-checked:border-ink-900 transition select-none">{{ label }}</span>
+</label>
+{% endmacro %}
+
+{# Read-only chip for displaying captured signals/reasons. #}
+{% macro static_chip(label, tone='ink') %}
+{% if tone == 'emerald' %}
+  <span class="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{{ label }}</span>
+{% elif tone == 'amber' %}
+  <span class="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">{{ label }}</span>
+{% else %}
+  <span class="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-ink-100 text-ink-900">{{ label }}</span>
+{% endif %}
+{% endmacro %}

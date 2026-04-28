@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}{{ lawyer.name }} · Legal Case Analyzer{% endblock %}
+
+{% set referred_total = stats.referred if stats is defined else (lawyer.stats.referred if lawyer.stats else 0) %}
+
+{% block content %}
+<div class="flex items-start justify-between gap-4 mb-8">
+  <div>
+    <div class="text-[11px] uppercase tracking-[0.2em] text-ink-700/60 mb-2">Lawyer</div>
+    <h1 class="font-display text-5xl text-ink-900 leading-[1.05]">{{ lawyer.name }}</h1>
+    <div class="mt-1 text-ink-700/70">{{ lawyer.firm }}</div>
+  </div>
+  <form method="post" action="{{ url_for('lawyers_delete', lawyer_id=lawyer.id) }}" onsubmit="return confirm('Remove this lawyer?')">
+    <button class="text-sm text-rose-700 hover:underline">Delete</button>
+  </form>
+</div>
+
+{# Calculate response/outcome metrics from referred cases #}
+{% set decline_count = 0 %}
+{% set accept_count = 0 %}
+{% set close_count = 0 %}
+{% set total_recovery = namespace(v=0) %}
+{% set total_fees = namespace(v=0) %}
+{% set decline_reasons_seen = {} %}
+{% for c in referred_cases %}
+  {% if c.lawyer_response == 'accepted' or c.status == 'accepted' or c.status == 'closed' %}
+    {% set accept_count = accept_count + 1 %}
+  {% endif %}
+  {% if c.status == 'closed' %}
+    {% set close_count = close_count + 1 %}
+    {% set total_recovery.v = total_recovery.v + (c.outcome_amount or 0) %}
+    {% set total_fees.v = total_fees.v + (c.referral_fee_collected or 0) %}
+  {% endif %}
+{% endfor %}
+{# Past declines from any case where this lawyer is in previously_referred_to #}
+{% for c in past_declines %}
+  {% set decline_count = decline_count + 1 %}
+{% endfor %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="space-y-6">
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-3">Contact</h3>
+      <dl class="text-sm space-y-2">
+        <div><dt class="text-ink-700/60 text-xs uppercase tracking-wider">Email</dt><dd>{{ lawyer.email or '—' }}</dd></div>
+        <div><dt class="text-ink-700/60 text-xs uppercase tracking-wider">Phone</dt><dd>{{ lawyer.phone or '—' }}</dd></div>
+        <div><dt class="text-ink-700/60 text-xs uppercase tracking-wider">Referral fee</dt><dd>{{ lawyer.referral_fee or '—' }}</dd></div>
+      </dl>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-3">Match criteria</h3>
+      <div class="text-[11px] uppercase tracking-wider text-ink-700/60 mb-1.5">Practice areas</div>
+      <div class="flex flex-wrap gap-1.5 mb-3">
+        {% for a in lawyer.practice_areas %}
+          <span class="text-xs bg-ink-100 text-ink-900 px-2 py-0.5 rounded-full">{{ CASE_TYPE_LABELS.get(a, a) }}</span>
+        {% endfor %}
+      </div>
+      <div class="text-[11px] uppercase tracking-wider text-ink-700/60 mb-1.5">States licensed</div>
+      <div class="text-sm mb-3">
+        {% if lawyer.states %}{{ lawyer.states|join(', ') }}{% else %}—{% endif %}
+      </div>
+      <div class="text-[11px] uppercase tracking-wider text-ink-700/60 mb-1.5">Value tiers</div>
+      <div class="text-sm mb-3">
+        {% for t in lawyer.value_tiers %}{{ VALUE_TIER_LABELS.get(t, t) }}{% if not loop.last %}, {% endif %}{% endfor %}
+        {% if not lawyer.value_tiers %}—{% endif %}
+      </div>
+      {% set cap = lawyer.capacity or {'current': 0, 'max': 0} %}
+      <div class="text-[11px] uppercase tracking-wider text-ink-700/60 mb-1.5">Capacity</div>
+      <div class="text-sm">{{ cap.current }} / {{ cap.max }} active</div>
+    </div>
+
+    {% if lawyer.preferences %}
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-3">Preferences</h3>
+      <p class="text-sm whitespace-pre-wrap text-ink-700">{{ lawyer.preferences }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="lg:col-span-2 space-y-6">
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-4">Performance</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="rounded-xl border border-ink-100 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-ink-700/60">Sent</div>
+          <div class="font-display text-3xl text-ink-900 mt-1">{{ (lawyer.stats or {}).get('referred', 0) }}</div>
+        </div>
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-emerald-900/60">Accepted</div>
+          <div class="font-display text-3xl text-emerald-800 mt-1">{{ (lawyer.stats or {}).get('accepted', 0) }}</div>
+        </div>
+        <div class="rounded-xl border border-rose-200 bg-rose-50/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-rose-900/60">Declined</div>
+          <div class="font-display text-3xl text-rose-800 mt-1">{{ (lawyer.stats or {}).get('declined', 0) }}</div>
+        </div>
+        <div class="rounded-xl border border-ink-100 bg-ink-50/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-ink-700/60">Fees earned</div>
+          <div class="font-display text-3xl text-ink-900 mt-1">${{ '{:,.0f}'.format(total_fees.v) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-card border border-ink-100 p-6">
+      <h3 class="font-display text-xl mb-3">Cases referred</h3>
+      {% if referred_cases %}
+        <ul class="divide-y divide-ink-100">
+          {% for c in referred_cases %}
+            <li class="py-3 flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <a href="{{ url_for('cases_detail', case_id=c.id) }}" class="font-medium text-ink-900 hover:underline">{{ c.name }}</a>
+                <div class="text-xs text-ink-700/60">
+                  {{ CASE_TYPE_LABELS.get(c.case_type, c.case_type) }}
+                  {% set juris = jurisdiction_str(c) %}{% if juris %} · {{ juris }}{% endif %}
+                  {% if c.outcome %} · {{ OUTCOME_LABELS.get(c.outcome, c.outcome) }}{% if c.outcome_amount %} ${{ '{:,.0f}'.format(c.outcome_amount) }}{% endif %}{% endif %}
+                </div>
+              </div>
+              {{ status_badge(c.status, STATUS_LABELS, STATUS_STYLES) }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-sm text-ink-700/60">No cases referred to {{ lawyer.name }} yet.</p>
+      {% endif %}
+    </div>
+
+    {% if past_declines %}
+    <div class="bg-rose-50/40 border border-rose-100 rounded-2xl p-6">
+      <h3 class="font-display text-xl mb-3 text-rose-900">Past declines from {{ lawyer.name }}</h3>
+      <p class="text-xs text-rose-900/60 mb-3">High-value training data — these tell the agent which cases this lawyer won't take.</p>
+      <ul class="divide-y divide-rose-200/60">
+        {% for entry in past_declines %}
+          <li class="py-3 text-sm">
+            <a href="{{ url_for('cases_detail', case_id=entry.case_id) }}" class="font-medium text-ink-900 hover:underline">{{ entry.case_name }}</a>
+            <div class="text-xs text-rose-900/70 mt-0.5">
+              {{ CASE_TYPE_LABELS.get(entry.case_type, entry.case_type) }} · {{ VALUE_TIER_LABELS.get(entry.value_tier, entry.value_tier) }}
+            </div>
+            <div class="mt-1.5 flex flex-wrap gap-1">
+              {% for r in entry.decline_reasons %}
+                <span class="text-[11px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">{{ DECLINE_REASON_LABELS.get(r, r) }}</span>
+              {% endfor %}
+            </div>
+            {% if entry.decline_notes %}<p class="mt-1.5 text-xs italic text-rose-900/80">"{{ entry.decline_notes }}"</p>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

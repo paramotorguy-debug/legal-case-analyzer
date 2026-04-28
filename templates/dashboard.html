@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stat_card, status_badge %}
+{% block title %}Dashboard · Legal Case Analyzer{% endblock %}
+
+{% block content %}
+<!-- Greeting header -->
+<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5 mb-12">
+  <div>
+    <div class="text-[11px] uppercase tracking-[0.2em] text-ink-700/60 mb-2">{{ today_str }}</div>
+    <h1 class="font-display text-5xl sm:text-6xl text-ink-900 leading-[1.02]">
+      {{ greeting }}, <span class="italic text-ink-700">{{ (current_user.name.split()[0] if current_user else 'there') }}</span>.
+    </h1>
+    <p class="text-ink-700/70 mt-3 max-w-lg">Here's where your referral pipeline stands today.</p>
+  </div>
+  <a href="{{ url_for('cases_new') }}" class="self-start inline-flex items-center gap-2 bg-ink-900 text-white text-sm font-medium px-5 py-3 rounded-full hover:bg-ink-800 transition shadow-card">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Case
+  </a>
+</div>
+
+<!-- KPI row -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  {{ stat_card('Total Cases', total_cases, '7-day intake', sparkline_values=spark_cases, accent='ink') }}
+  {{ stat_card('Needs Review', needs_review_count, ('Awaiting referral' if needs_review_count else 'All clear'), accent='amber') }}
+  {{ stat_card('Referred', referred_count, '7-day activity', sparkline_values=spark_referred, spark_color='bg-emerald-500', accent='emerald') }}
+  {{ stat_card('Network', lawyers_count, 'Active lawyers', accent='sky') }}
+</div>
+
+<!-- Pipeline -->
+<section class="bg-white rounded-2xl border border-ink-100 shadow-card p-6 sm:p-8 mb-8">
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h2 class="font-display text-2xl text-ink-900">Pipeline</h2>
+      <p class="text-xs text-ink-700/60 mt-0.5">Live distribution by stage</p>
+    </div>
+    <a href="{{ url_for('cases_list') }}" class="text-xs text-ink-700/70 hover:text-ink-900 inline-flex items-center gap-1">All cases →</a>
+  </div>
+  {% if total_cases > 0 %}
+    {% set pipeline_palette = {
+      'needs_review': 'bg-amber-400',
+      'ready_to_refer': 'bg-sky-400',
+      'referred': 'bg-emerald-400',
+      'accepted': 'bg-emerald-600',
+      'declined': 'bg-rose-400',
+      'closed': 'bg-ink-300'
+    } %}
+    <div class="flex h-3 rounded-full overflow-hidden bg-ink-50">
+      {% for s in pipeline %}
+        {% if s.count > 0 %}
+          <div class="{{ pipeline_palette.get(s.key, 'bg-ink-300') }}" style="width: {{ (s.count / total_cases * 100) | round(1) }}%"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-5">
+      {% for s in pipeline %}
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full {{ pipeline_palette.get(s.key, 'bg-ink-300') }}"></span>
+            <span class="text-xs text-ink-700/70">{{ s.label }}</span>
+          </div>
+          <div class="font-display text-2xl mt-1 text-ink-900">{{ s.count }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="py-8 text-center">
+      <p class="text-sm text-ink-700/60">No cases in the pipeline yet.</p>
+      <a href="{{ url_for('cases_new') }}" class="inline-flex items-center gap-2 mt-3 text-sm font-medium text-ink-900 hover:underline">
+        Add your first case →
+      </a>
+    </div>
+  {% endif %}
+</section>
+
+<!-- Earnings ribbon -->
+{% if closed_count or active_count or awaiting_count %}
+<section class="bg-gradient-to-br from-ink-900 to-ink-800 text-white rounded-2xl shadow-card p-6 sm:p-8 mb-8 relative overflow-hidden">
+  <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-accent/15 blur-3xl"></div>
+  <div class="relative grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div>
+      <div class="text-[10px] uppercase tracking-[0.18em] text-white/50 mb-1">Awaiting response</div>
+      <div class="font-display text-4xl">{{ awaiting_count }}</div>
+    </div>
+    <div>
+      <div class="text-[10px] uppercase tracking-[0.18em] text-white/50 mb-1">Active</div>
+      <div class="font-display text-4xl">{{ active_count }}</div>
+    </div>
+    <div>
+      <div class="text-[10px] uppercase tracking-[0.18em] text-white/50 mb-1">Total recovery</div>
+      <div class="font-display text-4xl">${{ '{:,.0f}'.format(total_recovery) }}</div>
+    </div>
+    <div>
+      <div class="text-[10px] uppercase tracking-[0.18em] text-accent mb-1">Referral fees earned</div>
+      <div class="font-display text-4xl text-accent">${{ '{:,.0f}'.format(total_fees) }}</div>
+      <div class="text-[10px] text-white/50 mt-1">across {{ closed_count }} closed case{{ '' if closed_count == 1 else 's' }}</div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Two-column: attention + network -->
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+  <section class="lg:col-span-3 bg-white rounded-2xl border border-ink-100 shadow-card p-6 sm:p-8">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="font-display text-2xl text-ink-900">Needs your attention</h2>
+        <p class="text-xs text-ink-700/60 mt-0.5">Cases waiting on a referral decision</p>
+      </div>
+      {% if attention %}<span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">{{ attention|length }} pending</span>{% endif %}
+    </div>
+    {% if attention %}
+      <ul class="divide-y divide-ink-100 -mx-2">
+        {% for c in attention %}
+          <li class="px-2 py-3.5 flex items-center justify-between gap-4 group hover:bg-ink-50/40 rounded-lg transition">
+            <div class="min-w-0 flex-1">
+              <a href="{{ url_for('cases_detail', case_id=c.id) }}" class="font-medium text-ink-900 hover:underline">{{ c.name }}</a>
+              <div class="text-xs text-ink-700/60 mt-0.5 flex items-center gap-2">
+                <span>{{ CASE_TYPE_LABELS.get(c.case_type, c.case_type) }}</span>
+                <span class="text-ink-200">·</span>
+                <span>{{ VALUE_TIER_LABELS.get(c.value_tier, c.value_tier) }}</span>
+                {% set juris = jurisdiction_str(c) %}{% if juris %}<span class="text-ink-200">·</span><span>{{ juris }}</span>{% endif %}
+              </div>
+            </div>
+            <a href="{{ url_for('cases_detail', case_id=c.id) }}" class="shrink-0 text-xs font-medium text-ink-900 px-3 py-1.5 rounded-full border border-ink-200 hover:bg-ink-900 hover:text-white hover:border-ink-900 transition opacity-0 group-hover:opacity-100">
+              Review →
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="py-12 text-center">
+        <div class="inline-flex w-12 h-12 rounded-full bg-emerald-50 items-center justify-center mb-3">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <p class="text-sm text-ink-900 font-medium">All caught up</p>
+        <p class="text-xs text-ink-700/60 mt-1">No cases awaiting referral.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="lg:col-span-2 bg-white rounded-2xl border border-ink-100 shadow-card p-6 sm:p-8">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="font-display text-2xl text-ink-900">Network</h2>
+        <p class="text-xs text-ink-700/60 mt-0.5">Capacity across your lawyers</p>
+      </div>
+      <a href="{{ url_for('lawyers_list') }}" class="text-xs text-ink-700/70 hover:text-ink-900">All →</a>
+    </div>
+    {% if network %}
+      <ul class="space-y-3.5">
+        {% for n in network[:5] %}
+          {% set bar_color = 'bg-rose-500' if n.pct >= 90 else ('bg-amber-500' if n.pct >= 70 else 'bg-emerald-500') %}
+          <li>
+            <div class="flex items-center justify-between gap-3">
+              <a href="{{ url_for('lawyers_detail', lawyer_id=n.lawyer.id) }}" class="text-sm font-medium text-ink-900 hover:underline truncate">{{ n.lawyer.name }}</a>
+              <span class="text-xs text-ink-700/60 shrink-0">{{ n.current }}/{{ n.max }}</span>
+            </div>
+            <div class="mt-1.5 h-1.5 bg-ink-50 rounded-full overflow-hidden">
+              <div class="{{ bar_color }} h-full rounded-full transition-all" style="width: {{ n.pct }}%"></div>
+            </div>
+            <div class="text-[11px] text-ink-700/50 mt-1 truncate">{{ n.lawyer.firm }}</div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="py-10 text-center text-sm text-ink-700/60">
+        No lawyers yet.<br>
+        <a href="{{ url_for('lawyers_new') }}" class="text-ink-900 underline mt-2 inline-block">Add one →</a>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Activity feed -->
+<section class="bg-white rounded-2xl border border-ink-100 shadow-card p-6 sm:p-8">
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h2 class="font-display text-2xl text-ink-900">Recent activity</h2>
+      <p class="text-xs text-ink-700/60 mt-0.5">Referrals you've made — also the agent's training data</p>
+    </div>
+  </div>
+  {% if activity %}
+    <ul class="space-y-4">
+      {% for c in activity %}
+        {% set lw = lawyers_by_id.get(c.assigned_lawyer_id) %}
+        <li class="flex items-start gap-4">
+          <div class="shrink-0 w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center mt-0.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm">
+              <a href="{{ url_for('cases_detail', case_id=c.id) }}" class="font-medium text-ink-900 hover:underline">{{ c.name }}</a>
+              <span class="text-ink-700/60"> referred to </span>
+              {% if lw %}<a href="{{ url_for('lawyers_detail', lawyer_id=lw.id) }}" class="font-medium text-ink-900 hover:underline">{{ lw.name }}</a>{% endif %}
+              {% if c.referral_was_override %}<span class="ml-2 text-[10px] uppercase tracking-wider bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">override</span>{% endif %}
+            </div>
+            {% if c.referral_reasons %}
+              <div class="mt-1.5 flex flex-wrap gap-1">
+                {% for r in c.referral_reasons[:4] %}
+                  <span class="text-[10px] bg-ink-100 text-ink-900 px-2 py-0.5 rounded-full">{{ REFERRAL_REASON_LABELS.get(r, r) }}</span>
+                {% endfor %}
+                {% if c.referral_reasons|length > 4 %}<span class="text-[10px] text-ink-700/60">+{{ c.referral_reasons|length - 4 }}</span>{% endif %}
+              </div>
+            {% endif %}
+            {% if c.referral_notes %}
+              <p class="text-xs text-ink-700/70 mt-1 italic">"{{ c.referral_notes }}"</p>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="py-12 text-center">
+      <p class="text-sm text-ink-900 font-medium">No referrals yet</p>
+      <p class="text-xs text-ink-700/60 mt-1 max-w-md mx-auto">Once you start assigning cases, every "why" you write becomes training data for the AI agent.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

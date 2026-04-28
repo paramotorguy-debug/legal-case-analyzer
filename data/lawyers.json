@@ -1,0 +1,126 @@
+[
+  {
+    "id": "l_demo0001",
+    "name": "Maria Alvarez",
+    "firm": "Alvarez Trial Law",
+    "email": "maria@alvareztrial.example",
+    "phone": "(713) 555-0142",
+    "practice_areas": [
+      "personal_injury",
+      "auto_accident",
+      "wrongful_death"
+    ],
+    "states": [
+      "TX"
+    ],
+    "value_tiers": [
+      "high",
+      "major"
+    ],
+    "referral_fee": "33%",
+    "capacity": {
+      "current": 18,
+      "max": 50
+    },
+    "preferences": "Prefers high-value PI/MVA. Will not take soft-tissue only cases.",
+    "stats": {
+      "referred": 2,
+      "accepted": 1,
+      "declined": 1
+    },
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0002",
+    "name": "David Chen",
+    "firm": "Chen & Park PLLC",
+    "email": "dchen@chenpark.example",
+    "phone": "(214) 555-0117",
+    "practice_areas": [
+      "premises_liability",
+      "product_liability",
+      "personal_injury"
+    ],
+    "states": [
+      "TX",
+      "OK"
+    ],
+    "value_tiers": [
+      "medium",
+      "high"
+    ],
+    "referral_fee": "33%",
+    "capacity": {
+      "current": 9,
+      "max": 35
+    },
+    "preferences": "Strong on premises liability. Takes mid-tier cases other firms pass on.",
+    "stats": {
+      "referred": 0,
+      "accepted": 0,
+      "declined": 0
+    },
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0003",
+    "name": "Priya Shah",
+    "firm": "Shah Medical Malpractice",
+    "email": "priya@shahmedmal.example",
+    "phone": "(512) 555-0188",
+    "practice_areas": [
+      "medical_malpractice",
+      "wrongful_death"
+    ],
+    "states": [
+      "TX",
+      "NM"
+    ],
+    "value_tiers": [
+      "high",
+      "major"
+    ],
+    "referral_fee": "40%",
+    "capacity": {
+      "current": 4,
+      "max": 15
+    },
+    "preferences": "Med mal only, no birth injury. Wants signed records before referral.",
+    "stats": {
+      "referred": 0,
+      "accepted": 0,
+      "declined": 0
+    },
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0004",
+    "name": "Jordan Reilly",
+    "firm": "Reilly Workers' Rights",
+    "email": "jordan@reillyworkers.example",
+    "phone": "(512) 555-0211",
+    "practice_areas": [
+      "workers_comp",
+      "personal_injury"
+    ],
+    "states": [
+      "TX"
+    ],
+    "value_tiers": [
+      "low",
+      "medium"
+    ],
+    "referral_fee": "25%",
+    "capacity": {
+      "current": 22,
+      "max": 40
+    },
+    "preferences": "Volume practice. Takes lower-tier work; quick intake turnaround.",
+    "stats": {
+      "referred": 0,
+      "accepted": 0,
+      "declined": 0
+    },
+    "created_at": "2026-04-01T12:00:00Z"
+  }
+]

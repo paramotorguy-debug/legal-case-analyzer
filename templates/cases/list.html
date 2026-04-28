@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header, status_badge %}
+{% block title %}Cases · Legal Case Analyzer{% endblock %}
+
+{% block content %}
+{{ page_header('Cases', 'All cases in your pipeline', '+ New Case', url_for('cases_new'), eyebrow='Pipeline') }}
+
+<div class="bg-white rounded-2xl shadow-card border border-ink-100 overflow-hidden">
+  {% if cases %}
+    <table class="w-full text-sm">
+      <thead class="bg-ink-50 text-left text-ink-700/70 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="px-6 py-3 font-medium">Client</th>
+          <th class="px-6 py-3 font-medium">Type</th>
+          <th class="px-6 py-3 font-medium">Tier</th>
+          <th class="px-6 py-3 font-medium">Location</th>
+          <th class="px-6 py-3 font-medium">Assigned</th>
+          <th class="px-6 py-3 font-medium">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for c in cases %}
+          <tr class="hover:bg-ink-50/50">
+            <td class="px-6 py-3.5">
+              <a href="{{ url_for('cases_detail', case_id=c.id) }}" class="font-medium text-ink-900 hover:underline">{{ c.name }}</a>
+              <div class="text-xs text-ink-700/60">{{ c.email or c.phone or '—' }}</div>
+            </td>
+            <td class="px-6 py-3.5 text-ink-700">{{ CASE_TYPE_LABELS.get(c.case_type, c.case_type) }}</td>
+            <td class="px-6 py-3.5 text-ink-700">{{ VALUE_TIER_LABELS.get(c.value_tier, c.value_tier) }}</td>
+            <td class="px-6 py-3.5 text-ink-700">{{ jurisdiction_str(c) or '—' }}</td>
+            <td class="px-6 py-3.5 text-ink-700">
+              {% if c.assigned_lawyer_id and lawyers_by_id.get(c.assigned_lawyer_id) %}
+                {{ lawyers_by_id[c.assigned_lawyer_id].name }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="px-6 py-3.5">{{ status_badge(c.status, STATUS_LABELS, STATUS_STYLES) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="text-center py-20 text-ink-700/60">
+      <div>No cases yet.</div>
+      <a href="{{ url_for('cases_new') }}" class="inline-block mt-3 text-sm text-ink-900 underline">Add your first case</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

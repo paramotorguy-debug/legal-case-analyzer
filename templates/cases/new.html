@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header, select_field, chip %}
+{% block title %}New Case · Legal Case Analyzer{% endblock %}
+
+{% block content %}
+{{ page_header('New Case', 'Intake form — fields shown to a referrer or imported from a marketing form.', eyebrow='Cases') }}
+
+<form method="post" class="bg-white rounded-2xl shadow-card border border-ink-100 max-w-3xl">
+  <section class="p-6 sm:p-8 border-b border-ink-100">
+    <h3 class="font-display text-2xl mb-1">Client info</h3>
+    <p class="text-sm text-ink-700/60 mb-5">From the marketing form fill.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Full name <span class="text-rose-600">*</span></span>
+        <input name="name" required value="{{ form.get('name', '') }}" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ink-900/20 focus:border-ink-700"/>
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Property address</span>
+        <input name="property_address" value="{{ form.get('property_address', '') }}" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Email</span>
+        <input type="email" name="email" value="{{ form.get('email', '') }}" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Phone</span>
+        <input name="phone" value="{{ form.get('phone', '') }}" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+      </label>
+    </div>
+    <label class="block mt-4">
+      <span class="text-sm font-medium text-ink-900">Comments / questions about the case</span>
+      <textarea name="comments" rows="4" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm">{{ form.get('comments', '') }}</textarea>
+    </label>
+  </section>
+
+  <section class="p-6 sm:p-8 border-b border-ink-100">
+    <h3 class="font-display text-2xl mb-1">Case classification</h3>
+    <p class="text-sm text-ink-700/60 mb-5">Used by the matching engine.</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Case type</span>
+        <div class="mt-1.5">
+          {{ select_field('case_type', CASE_TYPES, selected=form.get('case_type'), placeholder='Select case type…', required=True) }}
+        </div>
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Estimated value tier</span>
+        <div class="mt-1.5">
+          {{ select_field('value_tier', VALUE_TIERS, selected=form.get('value_tier'), placeholder='Select value tier…') }}
+        </div>
+      </label>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+      <label class="block sm:col-span-2">
+        <span class="text-sm font-medium text-ink-900">City</span>
+        <input
+          name="city" autocomplete="off" list="us-cities"
+          placeholder="Start typing… e.g. Livermore"
+          value="{{ form.get('city', '') }}"
+          class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+        <datalist id="us-cities">
+          {% for c in US_CITIES %}<option value="{{ c.split(',')[0] }}"></option>{% endfor %}
+        </datalist>
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">State</span>
+        <div class="mt-1.5">
+          {{ select_field('state', US_STATES, selected=form.get('state'), placeholder='Select state…') }}
+        </div>
+      </label>
+    </div>
+  </section>
+
+  <section class="p-6 sm:p-8">
+    <h3 class="font-display text-2xl mb-1">Intake assessment</h3>
+    <p class="text-sm text-ink-700/60 mb-5">Your structured read on the case as it comes in. <span class="text-ink-900 font-medium">This is the training input</span> — the agent learns to predict these from the comments over time.</p>
+
+    <div class="mb-6">
+      <div class="text-sm font-medium text-ink-900 mb-2">Case strength</div>
+      <div class="flex flex-wrap gap-2">
+        {% for code, label, hint in INTAKE_STRENGTH %}
+          <label class="cursor-pointer inline-block">
+            <input type="radio" name="intake_strength" value="{{ code }}" {% if form.get('intake_strength') == code %}checked{% endif %} class="peer sr-only" />
+            <span class="inline-flex flex-col px-4 py-2 rounded-xl text-sm font-medium border border-ink-200 text-ink-700 hover:border-ink-700 peer-checked:bg-ink-900 peer-checked:text-white peer-checked:border-ink-900 transition select-none">
+              <span>{{ label }}</span>
+              <span class="text-[10px] font-normal opacity-70 mt-0.5">{{ hint }}</span>
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <div class="text-sm font-medium text-ink-900 mb-1">Key signals from the intake</div>
+      <p class="text-xs text-ink-700/60 mb-4">Tap any that apply — these are the categorical features the agent will learn from.</p>
+      <div class="space-y-4">
+        {% for group_name, items in INTAKE_SIGNAL_GROUPS %}
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.18em] text-ink-700/50 mb-2">{{ group_name }}</div>
+            <div class="flex flex-wrap gap-1.5">
+              {% for code, label in items %}
+                {{ chip('intake_signals', code, label) }}
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <div class="flex items-center justify-end gap-3 px-6 sm:px-8 py-5 bg-ink-50/40 border-t border-ink-100 rounded-b-2xl">
+    <a href="{{ url_for('cases_list') }}" class="text-sm text-ink-700 hover:text-ink-900 px-4 py-2">Cancel</a>
+    <button type="submit" class="bg-ink-900 text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-ink-800 shadow-card">Create case</button>
+  </div>
+</form>
+{% endblock %}
