@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header %}
+{% block title %}Settings · {{ branding.firm_name or 'Legal Case Analyzer' }}{% endblock %}
+
+{% block content %}
+{{ page_header('Settings', 'Firm branding and contact info shown across the workspace.', eyebrow='Workspace') }}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl">
+
+  <!-- Logo card -->
+  <div class="lg:col-span-1 bg-white rounded-2xl shadow-card border border-ink-100 p-6 sm:p-7">
+    <h3 class="font-display text-2xl mb-1">Logo</h3>
+    <p class="text-sm text-ink-700/60 mb-5">Replaces the wordmark in the sidebar.</p>
+
+    <div class="flex flex-col items-center gap-5 py-4">
+      <div class="w-32 h-32 rounded-2xl bg-ink-50 border border-ink-100 flex items-center justify-center overflow-hidden">
+        {% if branding.logo_data_url %}
+          <img src="{{ branding.logo_data_url }}" alt="{{ branding.firm_name or 'Firm logo' }}" class="max-w-full max-h-full object-contain p-3"/>
+        {% else %}
+          <div class="text-ink-700/40 text-xs uppercase tracking-wider">No logo</div>
+        {% endif %}
+      </div>
+
+      <form method="post" enctype="multipart/form-data" class="w-full">
+        <input type="hidden" name="action" value="save_logo"/>
+        <label class="block w-full">
+          <span class="sr-only">Choose logo file</span>
+          <input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="block w-full text-xs text-ink-700/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-ink-900 file:text-white file:text-xs file:font-medium hover:file:bg-ink-800 file:cursor-pointer cursor-pointer"/>
+        </label>
+        <button type="submit" class="mt-3 w-full bg-ink-900 text-white text-sm font-medium px-4 py-2.5 rounded-full hover:bg-ink-800">Upload logo</button>
+        <p class="text-[11px] text-ink-700/50 mt-2 text-center">PNG, JPG, SVG, or WEBP. Max 2 MB.</p>
+      </form>
+
+      {% if branding.logo_data_url %}
+        <form method="post" class="w-full">
+          <input type="hidden" name="action" value="remove_logo"/>
+          <button type="submit" class="w-full text-xs text-ink-700/70 hover:text-rose-700 underline underline-offset-2">Remove logo</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Firm info card -->
+  <div class="lg:col-span-2 bg-white rounded-2xl shadow-card border border-ink-100 p-6 sm:p-8">
+    <h3 class="font-display text-2xl mb-1">Firm information</h3>
+    <p class="text-sm text-ink-700/60 mb-6">Used in the sidebar header, the dashboard, and outgoing referral notifications.</p>
+
+    <form method="post" class="space-y-5">
+      <input type="hidden" name="action" value="save_firm"/>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-sm font-medium text-ink-900">Firm name</span>
+          <input name="firm_name" value="{{ branding.firm_name }}" placeholder="e.g. My Tenant Lawyer" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ink-900/20 focus:border-ink-700"/>
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-ink-900">Tagline (optional)</span>
+          <input name="tagline" value="{{ branding.tagline }}" placeholder="e.g. Tenant-side representation" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+        </label>
+      </div>
+
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Address</span>
+        <input name="address" value="{{ branding.address }}" placeholder="Street, City, ST ZIP" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+      </label>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-sm font-medium text-ink-900">Phone</span>
+          <input name="phone" value="{{ branding.phone }}" placeholder="(555) 555-5555" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-ink-900">Email</span>
+          <input type="email" name="email" value="{{ branding.email }}" placeholder="intake@firm.com" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+        </label>
+      </div>
+
+      <label class="block">
+        <span class="text-sm font-medium text-ink-900">Website</span>
+        <input name="website" value="{{ branding.website }}" placeholder="https://" class="mt-1.5 w-full rounded-lg border-ink-200 border px-3 py-2.5 text-sm"/>
+      </label>
+
+      <div class="flex justify-end pt-2">
+        <button type="submit" class="bg-ink-900 text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-ink-800 shadow-card">Save firm info</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

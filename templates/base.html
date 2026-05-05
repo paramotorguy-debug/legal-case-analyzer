@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}Legal Case Analyzer{% endblock %}</title>
+  <title>{% block title %}{{ branding.firm_name or 'Legal Case Analyzer' }}{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,13 +40,29 @@
   <!-- Sidebar -->
   <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen bg-ink-900 text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out flex flex-col">
     <div class="px-6 pt-7 pb-6">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-md bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-ink-900 font-display text-xl leading-none pt-1">L</div>
-        <div class="leading-tight">
-          <div class="font-display text-xl">Legal Case</div>
-          <div class="font-display text-xl -mt-1.5 italic text-accent">Analyzer</div>
-        </div>
-      </div>
+      <a href="{{ url_for('dashboard') }}" class="flex items-center gap-2.5 hover:opacity-90 transition">
+        {% if branding.logo_data_url %}
+          <div class="w-9 h-9 rounded-md bg-white/95 flex items-center justify-center overflow-hidden shrink-0">
+            <img src="{{ branding.logo_data_url }}" alt="{{ branding.firm_name or 'Firm logo' }}" class="max-w-full max-h-full object-contain p-1"/>
+          </div>
+          <div class="leading-tight min-w-0">
+            <div class="font-display text-lg truncate">{{ branding.firm_name or 'Legal Case Analyzer' }}</div>
+            {% if branding.tagline %}<div class="text-[10px] text-white/50 -mt-0.5 truncate">{{ branding.tagline }}</div>{% endif %}
+          </div>
+        {% elif branding.firm_name %}
+          <div class="w-8 h-8 rounded-md bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-ink-900 font-display text-xl leading-none pt-1 shrink-0">{{ branding.firm_name[:1]|upper }}</div>
+          <div class="leading-tight min-w-0">
+            <div class="font-display text-lg truncate">{{ branding.firm_name }}</div>
+            {% if branding.tagline %}<div class="text-[10px] text-white/50 -mt-0.5 truncate">{{ branding.tagline }}</div>{% endif %}
+          </div>
+        {% else %}
+          <div class="w-8 h-8 rounded-md bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-ink-900 font-display text-xl leading-none pt-1">L</div>
+          <div class="leading-tight">
+            <div class="font-display text-xl">Legal Case</div>
+            <div class="font-display text-xl -mt-1.5 italic text-accent">Analyzer</div>
+          </div>
+        {% endif %}
+      </a>
     </div>
 
     <nav class="px-3 flex-1 space-y-0.5 text-sm">
@@ -54,6 +70,7 @@
         ('dashboard', 'Dashboard', 'M3 12l9-9 9 9M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10'),
         ('cases_list', 'Cases', 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6'),
         ('lawyers_list', 'Lawyers', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75'),
+        ('settings', 'Settings', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'),
       ] %}
       {% for endpoint, label, path in nav_items %}
         {% set active = request.endpoint == endpoint or (request.endpoint and request.endpoint.startswith(endpoint.split('_')[0]) and endpoint != 'dashboard') %}
@@ -107,7 +124,7 @@
       <button id="sidebar-toggle" aria-label="Open menu" class="p-1.5 rounded-md hover:bg-ink-100 text-ink-900">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <span class="font-display text-lg">Legal Case Analyzer</span>
+      <span class="font-display text-lg truncate">{{ branding.firm_name or 'Legal Case Analyzer' }}</span>
       <span class="w-7"></span>
     </header>
 

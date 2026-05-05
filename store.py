@@ -84,3 +84,36 @@ def upsert_lawyer(lawyer):
 
 def delete_lawyer(lawyer_id):
     save_lawyers([l for l in get_lawyers() if l["id"] != lawyer_id])
+
+
+# ---------- Branding (firm info + logo for white-label) ----------
+
+_DEFAULT_BRANDING = {
+    "firm_name": "",
+    "tagline": "",
+    "address": "",
+    "phone": "",
+    "email": "",
+    "website": "",
+    "logo_data_url": "",
+}
+
+
+def get_branding():
+    p = DATA_DIR / "branding.json"
+    if not p.exists():
+        return dict(_DEFAULT_BRANDING)
+    try:
+        b = json.loads(p.read_text() or "{}")
+    except Exception:
+        b = {}
+    out = dict(_DEFAULT_BRANDING)
+    out.update(b)
+    return out
+
+
+def save_branding(branding):
+    merged = get_branding()
+    merged.update({k: v for k, v in branding.items() if v is not None})
+    (DATA_DIR / "branding.json").write_text(json.dumps(merged, indent=2))
+    return merged

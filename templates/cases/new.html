@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import page_header, select_field, chip %}
-{% block title %}New Case · Legal Case Analyzer{% endblock %}
+{% block title %}New Case · {{ branding.firm_name or 'Legal Case Analyzer' }}{% endblock %}
 
 {% block content %}
 {{ page_header('New Case', 'Intake form — fields shown to a referrer or imported from a marketing form.', eyebrow='Cases') }}
@@ -35,13 +35,23 @@
 
   <section class="p-6 sm:p-8 border-b border-ink-100">
     <h3 class="font-display text-2xl mb-1">Case classification</h3>
-    <p class="text-sm text-ink-700/60 mb-5">Used by the matching engine.</p>
+    <p class="text-sm text-ink-700/60 mb-5">Used by the matching engine. Intake questions adapt to the case type you pick.</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <label class="block">
-        <span class="text-sm font-medium text-ink-900">Case type</span>
-        <div class="mt-1.5">
-          {{ select_field('case_type', CASE_TYPES, selected=form.get('case_type'), placeholder='Select case type…', required=True) }}
+        <span class="text-sm font-medium text-ink-900">Case type <span class="text-rose-600">*</span></span>
+        <div class="mt-1.5 relative">
+          <select name="case_type" id="case_type_select" required class="appearance-none w-full rounded-lg border-ink-200 border bg-white px-3 py-2.5 pr-9 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-900/20 focus:border-ink-700">
+            <option value="" {% if not form.get('case_type') %}selected{% endif %}>Select case type…</option>
+            {% for practice_code, practice_label in PRACTICE_AREAS %}
+              <optgroup label="{{ practice_label }}">
+                {% for code, label in CASE_TYPES_BY_PRACTICE[practice_code] %}
+                  <option value="{{ code }}" {% if form.get('case_type') == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-700/50 pointer-events-none"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </label>
       <label class="block">
@@ -94,14 +104,43 @@
 
     <div>
       <div class="text-sm font-medium text-ink-900 mb-1">Key signals from the intake</div>
-      <p class="text-xs text-ink-700/60 mb-4">Tap any that apply — these are the categorical features the agent will learn from.</p>
-      <div class="space-y-4">
-        {% for group_name, items in INTAKE_SIGNAL_GROUPS %}
+      <p class="text-xs text-ink-700/60 mb-4">Tap any that apply — these are the categorical features the agent will learn from. Questions adapt to the case type above.</p>
+
+      {% set selected_signals = form.getlist('intake_signals') if (form|attr('getlist')) else [] %}
+
+      <!-- Empty-state when no case type selected -->
+      <div id="signals-empty" class="rounded-xl border border-dashed border-ink-200 bg-ink-50/40 p-6 text-center">
+        <p class="text-sm text-ink-700/60">Pick a case type above to load the relevant intake questions.</p>
+      </div>
+
+      <!-- Case-type-specific groups: one signal-set div per case type, JS toggles. -->
+      {% for case_type_code, _ in CASE_TYPES %}
+        {% set specific_groups = INTAKE_SIGNAL_GROUPS_BY_TYPE.get(case_type_code, []) %}
+        {% if specific_groups %}
+          <div class="signal-set space-y-5 mb-5" data-case-type="{{ case_type_code }}" {% if form.get('case_type') != case_type_code %}style="display:none"{% endif %}>
+            {% for group_name, items in specific_groups %}
+              <div>
+                <div class="text-[11px] uppercase tracking-[0.18em] text-ink-700/50 mb-2">{{ group_name }}</div>
+                <div class="flex flex-wrap gap-1.5">
+                  {% for code, label in items %}
+                    {{ chip('intake_signals', code, label, checked=(code in selected_signals)) }}
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <!-- Universal groups: rendered once, always visible when a case type is selected. -->
+      <div id="universal-signals" class="space-y-5 pt-2 border-t border-ink-100 mt-5" {% if not form.get('case_type') %}style="display:none"{% endif %}>
+        <div class="text-[11px] uppercase tracking-[0.18em] text-ink-700/40 -mb-1">Applies to every case</div>
+        {% for group_name, items in UNIVERSAL_INTAKE_GROUPS %}
           <div>
             <div class="text-[11px] uppercase tracking-[0.18em] text-ink-700/50 mb-2">{{ group_name }}</div>
             <div class="flex flex-wrap gap-1.5">
               {% for code, label in items %}
-                {{ chip('intake_signals', code, label) }}
+                {{ chip('intake_signals', code, label, checked=(code in selected_signals)) }}
               {% endfor %}
             </div>
           </div>
@@ -115,4 +154,37 @@
     <button type="submit" class="bg-ink-900 text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-ink-800 shadow-card">Create case</button>
   </div>
 </form>
+
+<script>
+  (function() {
+    const select = document.getElementById('case_type_select');
+    const sets = document.querySelectorAll('.signal-set');
+    const empty = document.getElementById('signals-empty');
+    const universal = document.getElementById('universal-signals');
+
+    function showSignalsFor(caseType) {
+      if (!caseType) {
+        empty.style.display = '';
+        universal.style.display = 'none';
+        sets.forEach(s => {
+          s.style.display = 'none';
+          s.querySelectorAll('input[type=checkbox]').forEach(i => { i.checked = false; });
+        });
+        return;
+      }
+      empty.style.display = 'none';
+      universal.style.display = '';
+      sets.forEach(set => {
+        const match = set.dataset.caseType === caseType;
+        set.style.display = match ? '' : 'none';
+        if (!match) {
+          set.querySelectorAll('input[type=checkbox]').forEach(i => { i.checked = false; });
+        }
+      });
+    }
+
+    select.addEventListener('change', e => showSignalsFor(e.target.value));
+    showSignalsFor(select.value);
+  })();
+</script>
 {% endblock %}

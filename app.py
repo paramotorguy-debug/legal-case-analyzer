@@ -12,6 +12,10 @@ import agent
 from auth import login_required, current_user, google_configured
 from constants import (
     CASE_TYPES,
+    CASE_TYPES_BY_PRACTICE,
+    PRACTICE_AREAS,
+    PRACTICE_AREA_LABELS,
+    CASE_TYPE_TO_PRACTICE,
     VALUE_TIERS,
     STATUSES,
     CASE_TYPE_LABELS,
@@ -26,7 +30,10 @@ from constants import (
     INTAKE_STRENGTH_LABELS,
     INTAKE_STRENGTH_STYLES,
     INTAKE_SIGNAL_GROUPS,
+    INTAKE_SIGNAL_GROUPS_BY_TYPE,
     INTAKE_SIGNAL_LABELS,
+    UNIVERSAL_INTAKE_GROUPS,
+    signal_groups_for,
     REFERRAL_REASONS,
     REFERRAL_REASON_LABELS,
     DECLINE_REASONS,
@@ -57,6 +64,7 @@ def inject_user():
         "current_user": current_user(),
         "google_configured": google_configured(),
         "agent_configured": agent.is_configured(),
+        "branding": store.get_branding(),
     }
 
 
@@ -64,6 +72,10 @@ def inject_user():
 def inject_globals():
     return {
         "CASE_TYPES": CASE_TYPES,
+        "CASE_TYPES_BY_PRACTICE": CASE_TYPES_BY_PRACTICE,
+        "PRACTICE_AREAS": PRACTICE_AREAS,
+        "PRACTICE_AREA_LABELS": PRACTICE_AREA_LABELS,
+        "CASE_TYPE_TO_PRACTICE": CASE_TYPE_TO_PRACTICE,
         "VALUE_TIERS": VALUE_TIERS,
         "STATUSES": STATUSES,
         "CASE_TYPE_LABELS": CASE_TYPE_LABELS,
@@ -77,7 +89,10 @@ def inject_globals():
         "INTAKE_STRENGTH_LABELS": INTAKE_STRENGTH_LABELS,
         "INTAKE_STRENGTH_STYLES": INTAKE_STRENGTH_STYLES,
         "INTAKE_SIGNAL_GROUPS": INTAKE_SIGNAL_GROUPS,
+        "INTAKE_SIGNAL_GROUPS_BY_TYPE": INTAKE_SIGNAL_GROUPS_BY_TYPE,
+        "UNIVERSAL_INTAKE_GROUPS": UNIVERSAL_INTAKE_GROUPS,
         "INTAKE_SIGNAL_LABELS": INTAKE_SIGNAL_LABELS,
+        "signal_groups_for": signal_groups_for,
         "REFERRAL_REASONS": REFERRAL_REASONS,
         "REFERRAL_REASON_LABELS": REFERRAL_REASON_LABELS,
         "DECLINE_REASONS": DECLINE_REASONS,
@@ -600,6 +615,61 @@ def lawyers_delete(lawyer_id):
     store.delete_lawyer(lawyer_id)
     flash("Lawyer removed.", "success")
     return redirect(url_for("lawyers_list"))
+
+
+# ---------- Settings (firm info + logo, white-label) ----------
+
+import base64
+
+ALLOWED_LOGO_MIMETYPES = {"image/png", "image/jpeg", "image/svg+xml", "image/webp"}
+MAX_LOGO_BYTES = 2 * 1024 * 1024  # 2 MB
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    if request.method == "POST":
+        action = request.form.get("action", "save_firm")
+
+        if action == "save_firm":
+            store.save_branding({
+                "firm_name": request.form.get("firm_name", "").strip(),
+                "tagline": request.form.get("tagline", "").strip(),
+                "address": request.form.get("address", "").strip(),
+                "phone": request.form.get("phone", "").strip(),
+                "email": request.form.get("email", "").strip(),
+                "website": request.form.get("website", "").strip(),
+            })
+            flash("Firm info saved.", "success")
+            return redirect(url_for("settings"))
+
+        if action == "save_logo":
+            f = request.files.get("logo")
+            if not f or not f.filename:
+                flash("Pick a logo file to upload.", "error")
+                return redirect(url_for("settings"))
+            if f.mimetype not in ALLOWED_LOGO_MIMETYPES:
+                flash("Logo must be PNG, JPG, SVG, or WEBP.", "error")
+                return redirect(url_for("settings"))
+            data = f.read()
+            if len(data) > MAX_LOGO_BYTES:
+                flash("Logo file is too large (max 2 MB).", "error")
+                return redirect(url_for("settings"))
+            b64 = base64.b64encode(data).decode("ascii")
+            data_url = f"data:{f.mimetype};base64,{b64}"
+            store.save_branding({"logo_data_url": data_url})
+            flash("Logo uploaded.", "success")
+            return redirect(url_for("settings"))
+
+        if action == "remove_logo":
+            store.save_branding({"logo_data_url": ""})
+            flash("Logo removed.", "success")
+            return redirect(url_for("settings"))
+
+        flash("Unknown action.", "error")
+        return redirect(url_for("settings"))
+
+    return render_template("settings.html", branding=store.get_branding())
 
 
 if __name__ == "__main__":

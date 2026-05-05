@@ -1,6 +1,104 @@
 [
   {
     "id": "l_demo0001",
+    "name": "Sarah Mendez",
+    "firm": "Mendez Tenant Defense",
+    "email": "sarah@mendeztenant.example",
+    "phone": "(213) 555-0142",
+    "practice_areas": [
+      "habitability",
+      "toxic_exposure",
+      "wrongful_eviction",
+      "landlord_harassment"
+    ],
+    "states": ["CA", "TX"],
+    "value_tiers": ["medium", "high", "major"],
+    "referral_fee": "33%",
+    "capacity": {"current": 12, "max": 30},
+    "preferences": "Tenant-side trial litigator. Won landmark mold case against multifamily REIT in 2024. Wants documented losses and at least one written repair request before referral.",
+    "stats": {"referred": 4, "accepted": 3, "declined": 1},
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0002",
+    "name": "Marcus Lee",
+    "firm": "Lee & Associates Tenant Law",
+    "email": "mlee@leetenantlaw.example",
+    "phone": "(214) 555-0117",
+    "practice_areas": [
+      "eviction_defense",
+      "security_deposit",
+      "habitability"
+    ],
+    "states": ["TX"],
+    "value_tiers": ["low", "medium"],
+    "referral_fee": "25%",
+    "capacity": {"current": 22, "max": 40},
+    "preferences": "High-volume eviction defense. Same-day intake on emergencies (court date within 7 days). Will take fee-shifting cases on a hybrid model.",
+    "stats": {"referred": 6, "accepted": 5, "declined": 1},
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0003",
+    "name": "Aisha Nair",
+    "firm": "Nair Toxic Tort Group",
+    "email": "aisha@nairtoxictort.example",
+    "phone": "(415) 555-0188",
+    "practice_areas": [
+      "toxic_exposure",
+      "premises_liability",
+      "wrongful_death"
+    ],
+    "states": ["CA", "NV"],
+    "value_tiers": ["high", "major"],
+    "referral_fee": "40%",
+    "capacity": {"current": 4, "max": 12},
+    "preferences": "Mold, lead, asbestos with documented health damages. Wants pre-filed environmental test results and medical records before accepting. Won't take low-tier cases.",
+    "stats": {"referred": 3, "accepted": 2, "declined": 1},
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0004",
+    "name": "Robert Quinn",
+    "firm": "Quinn Tenants Rights",
+    "email": "rquinn@quinntenants.example",
+    "phone": "(512) 555-0211",
+    "practice_areas": [
+      "illegal_lockout",
+      "landlord_harassment",
+      "security_deposit",
+      "eviction_defense"
+    ],
+    "states": ["TX"],
+    "value_tiers": ["low", "medium", "high"],
+    "referral_fee": "33%",
+    "capacity": {"current": 18, "max": 35},
+    "preferences": "Aggressive on illegal lockouts — files same-day TRO. Will not take cases without photo evidence or police report.",
+    "stats": {"referred": 5, "accepted": 4, "declined": 1},
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0005",
+    "name": "Diana Park",
+    "firm": "Park Civil Rights & Tenant Law",
+    "email": "dpark@parkcivilrights.example",
+    "phone": "(305) 555-0166",
+    "practice_areas": [
+      "landlord_harassment",
+      "sexual_abuse",
+      "police_misconduct",
+      "wrongful_eviction"
+    ],
+    "states": ["FL", "GA"],
+    "value_tiers": ["medium", "high", "major"],
+    "referral_fee": "40%",
+    "capacity": {"current": 6, "max": 20},
+    "preferences": "Civil rights crossover. Strong on disability and protected-class landlord harassment. Will take complex retaliation matters.",
+    "stats": {"referred": 2, "accepted": 2, "declined": 0},
+    "created_at": "2026-04-01T12:00:00Z"
+  },
+  {
+    "id": "l_demo0006",
     "name": "Maria Alvarez",
     "firm": "Alvarez Trial Law",
     "email": "maria@alvareztrial.example",
@@ -10,28 +108,16 @@
       "auto_accident",
       "wrongful_death"
     ],
-    "states": [
-      "TX"
-    ],
-    "value_tiers": [
-      "high",
-      "major"
-    ],
+    "states": ["TX"],
+    "value_tiers": ["high", "major"],
     "referral_fee": "33%",
-    "capacity": {
-      "current": 18,
-      "max": 50
-    },
+    "capacity": {"current": 18, "max": 50},
     "preferences": "Prefers high-value PI/MVA. Will not take soft-tissue only cases.",
-    "stats": {
-      "referred": 2,
-      "accepted": 1,
-      "declined": 1
-    },
+    "stats": {"referred": 4, "accepted": 3, "declined": 1},
     "created_at": "2026-04-01T12:00:00Z"
   },
   {
-    "id": "l_demo0002",
+    "id": "l_demo0007",
     "name": "David Chen",
     "firm": "Chen & Park PLLC",
     "email": "dchen@chenpark.example",
@@ -41,29 +127,16 @@
       "product_liability",
       "personal_injury"
     ],
-    "states": [
-      "TX",
-      "OK"
-    ],
-    "value_tiers": [
-      "medium",
-      "high"
-    ],
+    "states": ["TX", "OK"],
+    "value_tiers": ["medium", "high"],
     "referral_fee": "33%",
-    "capacity": {
-      "current": 9,
-      "max": 35
-    },
+    "capacity": {"current": 9, "max": 35},
     "preferences": "Strong on premises liability. Takes mid-tier cases other firms pass on.",
-    "stats": {
-      "referred": 0,
-      "accepted": 0,
-      "declined": 0
-    },
+    "stats": {"referred": 2, "accepted": 1, "declined": 1},
     "created_at": "2026-04-01T12:00:00Z"
   },
   {
-    "id": "l_demo0003",
+    "id": "l_demo0008",
     "name": "Priya Shah",
     "firm": "Shah Medical Malpractice",
     "email": "priya@shahmedmal.example",
@@ -72,55 +145,12 @@
       "medical_malpractice",
       "wrongful_death"
     ],
-    "states": [
-      "TX",
-      "NM"
-    ],
-    "value_tiers": [
-      "high",
-      "major"
-    ],
+    "states": ["TX", "NM"],
+    "value_tiers": ["high", "major"],
     "referral_fee": "40%",
-    "capacity": {
-      "current": 4,
-      "max": 15
-    },
+    "capacity": {"current": 4, "max": 15},
     "preferences": "Med mal only, no birth injury. Wants signed records before referral.",
-    "stats": {
-      "referred": 0,
-      "accepted": 0,
-      "declined": 0
-    },
-    "created_at": "2026-04-01T12:00:00Z"
-  },
-  {
-    "id": "l_demo0004",
-    "name": "Jordan Reilly",
-    "firm": "Reilly Workers' Rights",
-    "email": "jordan@reillyworkers.example",
-    "phone": "(512) 555-0211",
-    "practice_areas": [
-      "workers_comp",
-      "personal_injury"
-    ],
-    "states": [
-      "TX"
-    ],
-    "value_tiers": [
-      "low",
-      "medium"
-    ],
-    "referral_fee": "25%",
-    "capacity": {
-      "current": 22,
-      "max": 40
-    },
-    "preferences": "Volume practice. Takes lower-tier work; quick intake turnaround.",
-    "stats": {
-      "referred": 0,
-      "accepted": 0,
-      "declined": 0
-    },
+    "stats": {"referred": 1, "accepted": 1, "declined": 0},
     "created_at": "2026-04-01T12:00:00Z"
   }
 ]
