@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}{{ branding.firm_name or 'Legal Case Analyzer' }}{% endblock %}</title>
+  <title>{% block title %}{{ branding.firm_name or 'Litics' }}{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='litics_favicon.svg') }}"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,6 +18,7 @@
             page: '#f6f4ee',
             cream: '#faf8f3',
             accent: '#c8a45c',
+            litics: { DEFAULT: '#1E6BFF', dark: '#0a4dc7', light: '#5a93ff' },
           },
           fontFamily: {
             display: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
@@ -46,7 +48,7 @@
             <img src="{{ branding.logo_data_url }}" alt="{{ branding.firm_name or 'Firm logo' }}" class="max-w-full max-h-full object-contain p-1"/>
           </div>
           <div class="leading-tight min-w-0">
-            <div class="font-display text-lg truncate">{{ branding.firm_name or 'Legal Case Analyzer' }}</div>
+            <div class="font-display text-lg truncate">{{ branding.firm_name or 'Litics' }}</div>
             {% if branding.tagline %}<div class="text-[10px] text-white/50 -mt-0.5 truncate">{{ branding.tagline }}</div>{% endif %}
           </div>
         {% elif branding.firm_name %}
@@ -56,10 +58,24 @@
             {% if branding.tagline %}<div class="text-[10px] text-white/50 -mt-0.5 truncate">{{ branding.tagline }}</div>{% endif %}
           </div>
         {% else %}
-          <div class="w-8 h-8 rounded-md bg-gradient-to-br from-accent to-amber-700 flex items-center justify-center text-ink-900 font-display text-xl leading-none pt-1">L</div>
+          <div class="w-9 h-9 rounded-md bg-black flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-white/10">
+            <svg viewBox="0 0 1024 1024" class="w-7 h-7" xmlns="http://www.w3.org/2000/svg">
+              <rect x="260" y="220" width="120" height="520" fill="white"/>
+              <rect x="260" y="620" width="420" height="120" fill="white"/>
+              <polygon points="260,220 420,140 420,240 260,320" fill="#1E6BFF"/>
+              <circle cx="610" cy="320" r="18" fill="#1E6BFF"/>
+              <circle cx="560" cy="430" r="18" fill="#1E6BFF"/>
+              <circle cx="610" cy="540" r="18" fill="#1E6BFF"/>
+              <line x1="628" y1="320" x2="860" y2="320" stroke="#1E6BFF" stroke-width="8"/>
+              <line x1="578" y1="430" x2="760" y2="430" stroke="#1E6BFF" stroke-width="8"/>
+              <line x1="760" y1="430" x2="860" y2="520" stroke="#1E6BFF" stroke-width="8"/>
+              <line x1="628" y1="540" x2="720" y2="540" stroke="#1E6BFF" stroke-width="8"/>
+              <line x1="720" y1="540" x2="860" y2="680" stroke="#1E6BFF" stroke-width="8"/>
+            </svg>
+          </div>
           <div class="leading-tight">
-            <div class="font-display text-xl">Legal Case</div>
-            <div class="font-display text-xl -mt-1.5 italic text-accent">Analyzer</div>
+            <div class="font-display text-2xl tracking-tight">Litics</div>
+            <div class="text-[9px] uppercase tracking-[0.2em] text-white/40 -mt-0.5">AI legal automation</div>
           </div>
         {% endif %}
       </a>
@@ -124,7 +140,7 @@
       <button id="sidebar-toggle" aria-label="Open menu" class="p-1.5 rounded-md hover:bg-ink-100 text-ink-900">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <span class="font-display text-lg truncate">{{ branding.firm_name or 'Legal Case Analyzer' }}</span>
+      <span class="font-display text-lg truncate">{{ branding.firm_name or 'Litics' }}</span>
       <span class="w-7"></span>
     </header>
 

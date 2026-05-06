@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import page_header %}
-{% block title %}New Lawyer · Legal Case Analyzer{% endblock %}
+{% block title %}New Lawyer · {{ branding.firm_name or "Litics" }}{% endblock %}
 
 {% block content %}
 {{ page_header('New Lawyer', 'Add a referral target. The matching engine uses these fields.', eyebrow='Network') }}

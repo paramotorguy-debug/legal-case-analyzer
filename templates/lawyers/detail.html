@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import status_badge %}
-{% block title %}{{ lawyer.name }} · Legal Case Analyzer{% endblock %}
+{% block title %}{{ lawyer.name }} · {{ branding.firm_name or "Litics" }}{% endblock %}
 
 {% set referred_total = stats.referred if stats is defined else (lawyer.stats.referred if lawyer.stats else 0) %}
 

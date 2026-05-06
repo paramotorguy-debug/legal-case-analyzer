@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import page_header, status_badge %}
-{% block title %}Cases · Legal Case Analyzer{% endblock %}
+{% block title %}Cases · {{ branding.firm_name or "Litics" }}{% endblock %}
 
 {% block content %}
 {{ page_header('Cases', 'All cases in your pipeline', '+ New Case', url_for('cases_new'), eyebrow='Pipeline') }}

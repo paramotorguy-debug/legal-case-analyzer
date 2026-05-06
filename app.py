@@ -534,6 +534,27 @@ def cases_delete(case_id):
     return redirect(url_for("cases_list"))
 
 
+@app.route("/cases/parse", methods=["POST"])
+@login_required
+def cases_parse():
+    """Parse a pasted/forwarded email into structured case fields.
+    Returns JSON the new-case form's JS uses to pre-populate inputs.
+    Same engine will run server-side once we wire inbound email forwarding."""
+    email_text = (request.form.get("email_text") or "").strip()
+    if not email_text:
+        return jsonify({"error": "Paste an email first."}), 400
+    if len(email_text) > 20000:
+        return jsonify({"error": "Email too long (20K char limit)."}), 400
+    if not agent.is_configured():
+        return jsonify({"error": "AI parser not configured. Set ANTHROPIC_API_KEY."}), 503
+    result = agent.parse_email(email_text)
+    if result is None:
+        return jsonify({"error": "Parser unavailable."}), 503
+    if result.get("error"):
+        return jsonify(result), 502
+    return jsonify(result)
+
+
 # ---------- Lawyers ----------
 
 @app.route("/lawyers")

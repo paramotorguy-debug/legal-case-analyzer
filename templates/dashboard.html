@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import stat_card, status_badge %}
-{% block title %}Dashboard · Legal Case Analyzer{% endblock %}
+{% block title %}Dashboard · {{ branding.firm_name or "Litics" }}{% endblock %}
 
 {% block content %}
 <!-- Greeting header -->

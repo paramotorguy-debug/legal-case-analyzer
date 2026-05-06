@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import page_header %}
-{% block title %}Lawyers · Legal Case Analyzer{% endblock %}
+{% block title %}Lawyers · {{ branding.firm_name or "Litics" }}{% endblock %}
 
 {% block content %}
 {{ page_header('Lawyers', 'Your referral network', '+ Add Lawyer', url_for('lawyers_new'), eyebrow='Network') }}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import status_badge, chip, static_chip, select_field %}
-{% block title %}{{ case.name }} · Legal Case Analyzer{% endblock %}
+{% block title %}{{ case.name }} · {{ branding.firm_name or "Litics" }}{% endblock %}
 
 {% set previously_declined_ids = (case.previously_referred_to or []) | map(attribute='lawyer_id') | list %}
 

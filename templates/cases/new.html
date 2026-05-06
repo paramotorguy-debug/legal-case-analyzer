@@ -1,11 +1,38 @@
 {% extends "base.html" %}
 {% from "_macros.html" import page_header, select_field, chip %}
-{% block title %}New Case · {{ branding.firm_name or 'Legal Case Analyzer' }}{% endblock %}
+{% block title %}New Case · {{ branding.firm_name or 'Litics' }}{% endblock %}
 
 {% block content %}
 {{ page_header('New Case', 'Intake form — fields shown to a referrer or imported from a marketing form.', eyebrow='Cases') }}
 
 <form method="post" class="bg-white rounded-2xl shadow-card border border-ink-100 max-w-3xl">
+
+  <!-- ---------- Paste-from-email (AI parser) ---------- -->
+  <section class="p-6 sm:p-8 bg-gradient-to-br from-black to-ink-900 text-white border-b border-ink-100 rounded-t-2xl">
+    <div class="flex items-start justify-between gap-4 mb-4">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 mb-1.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-litics"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <h3 class="font-display text-2xl text-white">Parse from email</h3>
+        </div>
+        <p class="text-sm text-white/60">Paste a forwarded intake email — AI fills the form below for you to review. (Once you sign up, every email forwarded to your firm's intake address gets parsed automatically.)</p>
+      </div>
+      <span class="text-[10px] uppercase tracking-[0.2em] text-litics bg-litics/10 border border-litics/30 px-2 py-1 rounded-full flex-shrink-0">Beta</span>
+    </div>
+
+    <textarea id="email_text" rows="5" placeholder="Paste the full email — subject, headers, body, signature. Messy is fine; the parser handles forwarded threads."
+              class="w-full rounded-lg bg-black/40 border border-white/15 text-white px-3 py-2.5 text-sm placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-litics/50 focus:border-litics/50 resize-y"></textarea>
+
+    <div class="mt-3 flex items-center gap-3 flex-wrap">
+      <button type="button" id="parse_btn" class="bg-litics hover:bg-litics-dark text-white text-sm font-bold px-5 py-2.5 rounded-full inline-flex items-center gap-2 transition shadow-lg shadow-litics/20 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg id="parse_icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9V3z"/></svg>
+        <span id="parse_label">Parse with AI</span>
+      </button>
+      <span id="parse_status" class="text-xs text-white/60 flex-1 min-w-0"></span>
+      <button type="button" id="parse_demo" class="text-xs text-white/40 hover:text-white/80 underline underline-offset-2">Try a sample</button>
+    </div>
+  </section>
+
   <section class="p-6 sm:p-8 border-b border-ink-100">
     <h3 class="font-display text-2xl mb-1">Client info</h3>
     <p class="text-sm text-ink-700/60 mb-5">From the marketing form fill.</p>
@@ -157,6 +184,7 @@
 
 <script>
   (function() {
+    // ---------- Case-type signal swap ----------
     const select = document.getElementById('case_type_select');
     const sets = document.querySelectorAll('.signal-set');
     const empty = document.getElementById('signals-empty');
@@ -185,6 +213,144 @@
 
     select.addEventListener('change', e => showSignalsFor(e.target.value));
     showSignalsFor(select.value);
+
+    // ---------- Paste-from-email parser ----------
+    const ta = document.getElementById('email_text');
+    const btn = document.getElementById('parse_btn');
+    const status = document.getElementById('parse_status');
+    const label = document.getElementById('parse_label');
+    const demoBtn = document.getElementById('parse_demo');
+
+    const SAMPLE_EMAIL = `From: intake@mytenantlawyer.com
+To: routing@firm.example
+Subject: Fwd: New intake — possible habitability case (urgent)
+Date: Tue, 6 May 2026 09:14:22 -0500
+
+---------- Forwarded message ---------
+From: Yolanda Reyes-Vasquez <yolanda.r.v@example.com>
+Date: Mon, 5 May 2026 18:42:00
+Subject: Help — landlord won't fix anything
+
+Hi, I am writing because we have been living in this rental at 5512 Telephone Rd, Houston TX for almost two years and the conditions are getting really bad. We have four kids. There has been a roach and rat infestation for over six months. The plumbing leaks from the bathroom upstairs have rotted the floor and now there is a hole in the bathroom floor. The city issued a code citation about six weeks ago and the landlord has done absolutely nothing.
+
+I have written him three times asking for repairs and have all the texts. I have lots of photos and a video. We don't speak English very well so my daughter is helping me write this.
+
+We need a lawyer who can help us. Please call me at 713-555-1455.
+
+Thank you,
+Yolanda
+
+(Sent from my iPhone)`;
+
+    function setField(name, value) {
+      if (value === null || value === undefined || value === '') return;
+      const el = document.querySelector(`[name="${name}"]`);
+      if (el) el.value = value;
+    }
+
+    function setRadio(name, value) {
+      if (!value) return;
+      const r = document.querySelector(`input[name="${name}"][value="${value}"]`);
+      if (r) r.checked = true;
+    }
+
+    function checkSignals(codes, caseType) {
+      if (!codes || !codes.length) return 0;
+      let checked = 0;
+      // Check chips inside the visible case-type set
+      const visibleSet = caseType ? document.querySelector(`.signal-set[data-case-type="${caseType}"]`) : null;
+      const universalEl = document.getElementById('universal-signals');
+      codes.forEach(code => {
+        // Try the case-specific set first
+        if (visibleSet) {
+          const t = visibleSet.querySelector(`input[name="intake_signals"][value="${code}"]`);
+          if (t) { t.checked = true; checked++; return; }
+        }
+        // Fall back to universal
+        if (universalEl) {
+          const t = universalEl.querySelector(`input[name="intake_signals"][value="${code}"]`);
+          if (t) { t.checked = true; checked++; }
+        }
+      });
+      return checked;
+    }
+
+    async function runParse() {
+      const text = ta.value.trim();
+      if (!text) {
+        status.textContent = 'Paste an email first.';
+        status.className = 'text-xs text-amber-300 flex-1 min-w-0';
+        return;
+      }
+      btn.disabled = true;
+      label.textContent = 'Parsing…';
+      status.className = 'text-xs text-white/60 flex-1 min-w-0';
+      status.textContent = 'Reading email and extracting fields…';
+
+      try {
+        const r = await fetch('{{ url_for("cases_parse") }}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: new URLSearchParams({email_text: text}),
+        });
+        const data = await r.json();
+        if (data.error) {
+          status.textContent = 'Parser error: ' + data.error;
+          status.className = 'text-xs text-rose-300 flex-1 min-w-0';
+          return;
+        }
+
+        // Basic fields
+        setField('name', data.name);
+        setField('email', data.email);
+        setField('phone', data.phone);
+        setField('property_address', data.property_address);
+        setField('city', data.city);
+        setField('state', data.state);
+        setField('comments', data.comments);
+        setField('value_tier', data.value_tier);
+        setRadio('intake_strength', data.intake_strength);
+
+        // Case type — must trigger change event to swap signal sets
+        if (data.case_type) {
+          select.value = data.case_type;
+          select.dispatchEvent(new Event('change'));
+        }
+
+        // Signals — check after a tick so the swap has completed
+        let signalsChecked = 0;
+        if (data.intake_signals && data.intake_signals.length) {
+          // The change event runs synchronously above but settle-tick anyway
+          signalsChecked = checkSignals(data.intake_signals, data.case_type);
+        }
+
+        const filled = [
+          data.name && 'name',
+          data.case_type && 'case type',
+          (data.intake_signals || []).length && `${signalsChecked} signal${signalsChecked === 1 ? '' : 's'}`,
+        ].filter(Boolean).join(', ');
+
+        status.innerHTML = `<span class="text-emerald-300">✓ Parsed</span> · ${filled || 'fields populated'}. ${data.extraction_notes ? '<span class="text-white/50">' + data.extraction_notes + '</span>' : 'Review fields below before submitting.'}`;
+        status.className = 'text-xs flex-1 min-w-0';
+
+        // Scroll to the form below
+        setTimeout(() => document.querySelector('section[class*="border-b"]:nth-of-type(2)')?.scrollIntoView({behavior: 'smooth', block: 'start'}), 200);
+      } catch (e) {
+        status.textContent = 'Network error: ' + e.message;
+        status.className = 'text-xs text-rose-300 flex-1 min-w-0';
+      } finally {
+        btn.disabled = false;
+        label.textContent = 'Parse with AI';
+      }
+    }
+
+    btn.addEventListener('click', runParse);
+    if (demoBtn) {
+      demoBtn.addEventListener('click', () => {
+        ta.value = SAMPLE_EMAIL;
+        ta.focus();
+      });
+    }
   })();
 </script>
 {% endblock %}
