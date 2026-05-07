@@ -5,6 +5,19 @@
 {% block content %}
 {{ page_header('Cases', 'All cases in your pipeline', '+ New Case', url_for('cases_new'), eyebrow='Pipeline') }}
 
+{% if status_filter %}
+  <div class="flex items-center gap-2 mb-4 text-sm">
+    <span class="text-ink-700/60">Filtered by:</span>
+    {% for s in status_filter %}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium {{ STATUS_STYLES.get(s, 'bg-slate-100 text-slate-700') }}">
+        {{ STATUS_LABELS.get(s, s) }}
+      </span>
+    {% endfor %}
+    <a href="{{ url_for('cases_list') }}" class="text-xs text-ink-700/60 hover:text-ink-900 underline underline-offset-2 ml-1">Clear</a>
+    <span class="ml-auto text-xs text-ink-700/60">{{ cases|length }} case{{ 's' if cases|length != 1 else '' }}</span>
+  </div>
+{% endif %}
+
 <div class="bg-white rounded-2xl shadow-card border border-ink-100 overflow-hidden">
   {% if cases %}
     <table class="w-full text-sm">

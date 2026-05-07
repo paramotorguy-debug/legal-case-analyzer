@@ -263,11 +263,18 @@ def dashboard():
 def cases_list():
     cases = sorted(store.get_cases(), key=lambda c: c["created_at"], reverse=True)
     lawyers_by_id = {l["id"]: l for l in store.get_lawyers()}
+
+    # Optional status filter — supports multi-value via repeated query params
+    status_filter = [s for s in request.args.getlist("status") if s in dict(STATUSES)]
+    if status_filter:
+        cases = [c for c in cases if c.get("status") in status_filter]
+
     return render_template(
         "cases/list.html",
         cases=cases,
         lawyers_by_id=lawyers_by_id,
         jurisdiction_str=jurisdiction_str,
+        status_filter=status_filter,
     )
 
 

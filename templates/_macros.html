@@ -27,8 +27,9 @@
   </div>
 {% endmacro %}
 
-{% macro stat_card(label, value, sublabel=None, sparkline_values=None, spark_color='bg-ink-900', accent='ink') %}
-<div class="relative bg-white rounded-2xl shadow-card hover:shadow-cardHover transition border border-ink-100 px-6 py-6 overflow-hidden group">
+{% macro stat_card(label, value, sublabel=None, sparkline_values=None, spark_color='bg-ink-900', accent='ink', href=None) %}
+{% set tag = 'a' if href else 'div' %}
+<{{ tag }} {% if href %}href="{{ href }}"{% endif %} class="relative block bg-white rounded-2xl shadow-card {% if href %}hover:shadow-cardHover hover:-translate-y-0.5 cursor-pointer{% endif %} transition border border-ink-100 px-6 py-6 overflow-hidden group">
   <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full {% if accent == 'amber' %}bg-amber-50{% elif accent == 'emerald' %}bg-emerald-50{% elif accent == 'sky' %}bg-sky-50{% else %}bg-ink-50{% endif %} opacity-70"></div>
   <div class="relative">
     <div class="flex items-center justify-between">
@@ -37,11 +38,14 @@
     </div>
     <div class="font-display text-6xl mt-3 text-ink-900 leading-none">{{ value }}</div>
     <div class="mt-4 flex items-end justify-between gap-3">
-      <div class="text-xs text-ink-700/60 leading-tight">{{ sublabel or '&nbsp;'|safe }}</div>
+      <div class="text-xs text-ink-700/60 leading-tight flex items-center gap-1">
+        {{ sublabel or '&nbsp;'|safe }}
+        {% if href %}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-0 group-hover:opacity-60 -translate-x-1 group-hover:translate-x-0 transition"><polyline points="9 18 15 12 9 6"/></svg>{% endif %}
+      </div>
       {% if sparkline_values %}{{ sparkline(sparkline_values, spark_color) }}{% endif %}
     </div>
   </div>
-</div>
+</{{ tag }}>
 {% endmacro %}
 
 {# Styled <select> with a chevron icon. options: list of (value, label) #}

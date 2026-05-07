@@ -20,10 +20,10 @@
 
 <!-- KPI row -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  {{ stat_card('Total Cases', total_cases, '7-day intake', sparkline_values=spark_cases, accent='ink') }}
-  {{ stat_card('Needs Review', needs_review_count, ('Awaiting referral' if needs_review_count else 'All clear'), accent='amber') }}
-  {{ stat_card('Referred', referred_count, '7-day activity', sparkline_values=spark_referred, spark_color='bg-emerald-500', accent='emerald') }}
-  {{ stat_card('Network', lawyers_count, 'Active lawyers', accent='sky') }}
+  {{ stat_card('Total Cases', total_cases, 'View all cases', sparkline_values=spark_cases, accent='ink', href=url_for('cases_list')) }}
+  {{ stat_card('Needs Review', needs_review_count, ('Awaiting referral' if needs_review_count else 'All clear'), accent='amber', href=url_for('cases_list', status='needs_review')) }}
+  {{ stat_card('Referred', referred_count, 'View referred & accepted', sparkline_values=spark_referred, spark_color='bg-emerald-500', accent='emerald', href=url_for('cases_list', status=['referred', 'accepted'])) }}
+  {{ stat_card('Network', lawyers_count, 'View active lawyers', accent='sky', href=url_for('lawyers_list')) }}
 </div>
 
 <!-- Pipeline -->
